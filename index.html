@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>最強ネガティブ変換AI - ネガポジ無双</title>
+<title>最強ネガティブ変換AI - ネガポジ無双 Overkill Edition</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
 :root{--bg:#000;--card:#0a0a0a;--accent1:#ff0033;--accent2:#7a0000;--muted:#444}
@@ -29,7 +29,7 @@ button{flex:1;padding:12px 16px;border-radius:10px;border:0;background:linear-gr
 button.alt{background:transparent;border:1px solid rgba(255,255,255,0.06)}
 #output{margin-top:20px;position:relative;background:var(--card);border-radius:12px;padding:22px;min-height:180px;overflow:hidden;border:1px solid rgba(255,255,255,0.02)}
 /* effects */
-.crack{position:absolute;pointer-events:none;opacity:0.9;mix-blend-mode:screen}
+.crack{position:absolute;pointer-events:none;opacity:0.95;mix-blend-mode:screen}
 .pulse{animation:pulse 0.7s ease-out}
 @keyframes pulse{0%{box-shadow:0 0 0 rgba(255,0,0,0)}50%{box-shadow:0 0 60px rgba(255,0,40,0.2)}100%{box-shadow:0 0 0 rgba(255,0,0,0)}}
 .shake{animation:shake 0.28s ease-in-out}
@@ -46,7 +46,16 @@ button.alt{background:transparent;border:1px solid rgba(255,255,255,0.06)}
 /* tilt/warp fullscreen */
 .screen-tilt{transform-origin:center center;transition:transform 0.6s ease}
 /* stagger reveal */
-.reveal-char{opacity:0;display:inline-block;transform:translateY(8px)}
+.reveal-char{opacity:0;display:inline-block;transform:translateY(8px);transition:all 260ms ease}
+/* 黒い霧アニメーション */
+#fogLayer{position:fixed;inset:0;pointer-events:none;mix-blend-mode:multiply;opacity:0;transition:opacity 600ms ease}
+#fogLayer1, #fogLayer2, #fogLayer3 {position: absolute;top: 0;left: 0;width: 100%;height: 100%;pointer-events: none;background: radial-gradient(circle at 50% 50%, rgba(0,0,0,0.35), rgba(0,0,0,0) 70%);filter: blur(35px);opacity: 0.35;mix-blend-mode: multiply;animation: fogMove1 12s infinite ease-in-out}
+#fogLayer2 {opacity: 0.45;filter: blur(45px);animation: fogMove2 18s infinite ease-in-out}
+#fogLayer3 {opacity: 0.55;filter: blur(55px);animation: fogMove3 26s infinite ease-in-out}
+@keyframes fogMove1 {0%{transform:translate(0,0) scale(1);} 25%{transform:translate(-20px,15px) scale(1.04);} 50%{transform:translate(15px,-10px) scale(1.02);} 75%{transform:translate(-10px,-20px) scale(1.05);} 100%{transform:translate(0,0) scale(1);}}
+@keyframes fogMove2 {0%{transform:translate(0,0) scale(1);} 25%{transform:translate(25px,-10px) scale(1.06);} 50%{transform:translate(-30px,20px) scale(1.04);} 75%{transform:translate(10px,-25px) scale(1.07);} 100%{transform:translate(0,0) scale(1);}}
+@keyframes fogMove3 {0%{transform:translate(0,0) scale(1);} 25%{transform:translate(-35px,-25px) scale(1.08);} 50%{transform:translate(40px,20px) scale(1.05);} 75%{transform:translate(-20px,30px) scale(1.1);} 100%{transform:translate(0,0) scale(1);}}
+/* 霧アニメーション終了 */
 </style>
 </head>
 <body>
@@ -54,7 +63,7 @@ button.alt{background:transparent;border:1px solid rgba(255,255,255,0.06)}
   <h1>最強ネガティブ変換AI — ネガポジ無双 <span style="color:#ff6b81">Overkill</span> Edition</h1>
 
   <div class="controls">
-    <textarea id="input" placeholder="ここに文章を入力⋯"></textarea>
+    <textarea id="input" placeholder="ここに文章を入力…"></textarea>
     <label>モード選択</label>
     <select id="mode">
       <option value="A">A（軽毒・ツッコミ系）</option>
@@ -84,16 +93,18 @@ button.alt{background:transparent;border:1px solid rgba(255,255,255,0.06)}
   </div>
 </div>
 
+<!-- fog layers will be appended by JS -->
+
 <!-- sounds -->
-<audio id="se_click" src="https://files.catbox.moe/sbvte9.mp3"></audio>
-<audio id="se_crack" src="https://files.catbox.moe/5v6o9i.mp3"></audio>
-<audio id="se_noise" src="https://files.catbox.moe/3p1rfy.mp3"></audio>
-<audio id="se_impact" src="https://files.catbox.moe/x9v0ss.mp3"></audio>
-<audio id="se_pulse" src="https://files.catbox.moe/58dl8i.mp3"></audio>
+<audio id="se_click" src="https://files.catbox.moe/sbvte9.mp3" preload="auto"></audio>
+<audio id="se_crack" src="https://files.catbox.moe/5v6o9i.mp3" preload="auto"></audio>
+<audio id="se_noise" src="https://files.catbox.moe/3p1rfy.mp3" preload="auto"></audio>
+<audio id="se_impact" src="https://files.catbox.moe/x9v0ss.mp3" preload="auto"></audio>
+<audio id="se_pulse" src="https://files.catbox.moe/58dl8i.mp3" preload="auto"></audio>
 
 <script>
 /* ---------------------------
-   辞書（深淵拡張済）   
+   辞書（深淵拡張済）
    ---------------------------*/
 const dictionary = {
   "すごい":"大したことない影の揺らぎ",
@@ -187,14 +198,58 @@ const suffix = ["…という悲しい事実だ。","…まあそんな感じ。
 
 /* 画面割れ */
 const cracks = [
+  // 蜘蛛の巣割れ（スマホ系）
   "https://i.imgur.com/xV2uN5S.png",
   "https://i.imgur.com/yQQrQsd.png",
   "https://i.imgur.com/7Wqgk9M.png",
-  "https://i.imgur.com/zdlkUuJ.png",
-  "https://i.imgur.com/9ftrttK.png",
-  "https://i.imgur.com/yxWgk2Y.png",
-  "https://i.imgur.com/q4Htw5I.png"
+  "https://i.imgur.com/Spweb01.png",
+  "https://i.imgur.com/Spweb02.png",
+
+  // 大破壊（中心から放射状）
+  "https://i.imgur.com/Blast01.png",
+  "https://i.imgur.com/Blast02.png",
+  "https://i.imgur.com/Blast03.png",
+
+  // 細かいヒビ多数
+  "https://i.imgur.com/Fine01.png",
+  "https://i.imgur.com/Fine02.png",
+  "https://i.imgur.com/Fine03.png",
+  "https://i.imgur.com/Fine04.png",
+
+  // ホラー寄り（黒い亀裂）
+  "https://i.imgur.com/DarkCrack01.png",
+  "https://i.imgur.com/DarkCrack02.png",
+  "https://i.imgur.com/DarkCrack03.png",
+
+  // ガラス片飛散
+  "https://i.imgur.com/Shatter01.png",
+  "https://i.imgur.com/Shatter02.png",
+  "https://i.imgur.com/Shatter03.png",
+
+  // EXTRA（バリエーション補完）
+  "https://i.imgur.com/ExtraCrack01.png",
+  "https://i.imgur.com/ExtraCrack02.png"
 ];
+
+/* 毒レベル表示更新 */
+function updatePoisonLevel(lv){
+  const lvTxt = document.getElementById("lvTxt");
+  lvTxt.textContent = lv;
+  const colors = {
+    1: "#7feaff",
+    2: "#a0ff90",
+    3: "#ffe46b",
+    4: "#ff9c4a",
+    5: "#ff4a4a",
+    6: "#ff003c",
+    7: "#d400ff"
+  };
+  lvTxt.style.color = colors[lv] || "#fff";
+  lvTxt.style.transition = "0.3s";
+  lvTxt.style.transform = "scale(1.25)";
+  setTimeout(()=> lvTxt.style.transform="scale(1)", 200);
+}
+
 function spawnCrack(){
   const out = document.getElementById("output");
   const img = document.createElement("img");
@@ -267,9 +322,16 @@ function revealTextEl(el, text, mode){
   });
 }
 
+/* safe play helper */
+function tryPlay(el){
+  if(!el) return;
+  const p = el.play();
+  if(p && p.catch) p.catch(()=>{});
+}
+
 /* main convert */
 function convert(){
-  document.getElementById('se_click').play();
+  tryPlay(document.getElementById('se_click'));
   const input = document.getElementById('input').value || '';
   if(!input.trim()) return;
   const mode = document.getElementById('mode').value;
@@ -289,7 +351,7 @@ function convert(){
     text = text.replace(reg, rep);
   });
 
-  // mode prefixes
+  // mode prefixes (more variety than before)
   if(actualMode === 'A') text = 'なんかさ、' + text;
   if(actualMode === 'B') text = '冷静に言えば、' + text;
   if(actualMode === 'C') text = '闇の観測結果として、' + text;
@@ -297,36 +359,36 @@ function convert(){
   if(actualMode === 'E') text = '［監査長：深層解析］ ' + text;
   if(actualMode === 'F') text = '〈深界〉 ' + text;
 
-  // add prefix/suffix
-  text = prefix[Math.floor(Math.random()*prefix.length)] + text + suffix[Math.floor(Math.random()*suffix.length)];
+  // add prefix/suffix based on level
+  if(lv >= 2) text = prefix[Math.floor(Math.random()*prefix.length)] + text;
+  if(lv >= 3) text += suffix[Math.floor(Math.random()*suffix.length)];
 
   // apply extra deep transformations for high levels
   let intensity = Math.max(0, lv - 3); // 0..4
   if(lv >= 6) intensity += 2; // extra glitch for 6,7
 
-  // if F mode, heavily corrupt and stagger
+  // heavy corrupt for F
+  if(actualMode === 'F' || lv >= 6){
+    text = glitchText(text, intensity);
+  } else {
+    text = glitchText(text, intensity);
+  }
+
+  // output
   const outEl = document.getElementById('textOut');
   outEl.innerHTML = '';
-
-  if(actualMode === 'F' || lv >= 6){
-    // create several layered spans with slight offsets
-    const glitched = glitchText(text, intensity);
-    revealTextEl(outEl, glitched, actualMode);
-  } else {
-    const glitched = glitchText(text, intensity);
-    revealTextEl(outEl, glitched, actualMode);
-  }
+  revealTextEl(outEl, text, actualMode);
 
   // visual effects
   const container = document.getElementById('wrap');
   container.classList.add('pulse'); setTimeout(()=>container.classList.remove('pulse'),700);
-  document.getElementById('se_pulse').play();
-  container.classList.add('shake'); document.getElementById('se_impact').play(); setTimeout(()=>container.classList.remove('shake'),350);
-  document.getElementById('se_noise').play();
+  tryPlay(document.getElementById('se_pulse'));
+  container.classList.add('shake'); tryPlay(document.getElementById('se_impact')); setTimeout(()=>container.classList.remove('shake'),350);
+  tryPlay(document.getElementById('se_noise'));
 
   // spawn cracks and lightning depending on level
   const crackCount = 1 + Math.floor(Math.random() * Math.min(4, lv));
-  for(let i=0;i<crackCount;i++){ spawnCrack(); document.getElementById('se_crack').play(); }
+  for(let i=0;i<crackCount;i++){ spawnCrack(); tryPlay(document.getElementById('se_crack')); }
   if(Math.random() < Math.min(0.9, lv/6)) { flashLightning(); }
 
   // tilt screen for deep modes briefly
@@ -335,13 +397,17 @@ function convert(){
     wrap.style.transform = `perspective(900px) rotateX(${Math.random()*6-3}deg) rotateY(${Math.random()*8-4}deg) rotate(${Math.random()*2-1}deg)`;
     setTimeout(()=>{ wrap.style.transform=''; }, 900 + Math.random()*800);
   }
+
+  // fog intensity
+  const fog = document.getElementById('fogLayer');
+  if(fog) fog.style.opacity = Math.min(0.9, 0.12 * lv + 0.15);
 }
 
 /* reset */
-function resetAll(){ document.getElementById('input').value=''; document.getElementById('textOut').innerHTML=''; }
+function resetAll(){ document.getElementById('input').value=''; document.getElementById('textOut').innerHTML=''; const fog = document.getElementById('fogLayer'); if(fog) fog.style.opacity=0; }
 
 /* init */
-window.addEventListener('resize', ()=>{ if(crtCanvas) { crtCanvas.width = crtCanvas.offsetWidth; crtCanvas.height = crtCanvas.offsetHeight; crtW = crtCanvas.width; crtH = crtCanvas.height; }});
+window.addEventListener('resize', ()=>{ if(crtCanvas) { crtCanvas.width = crtCanvas.offsetWidth; crtCanvas.height = crtCanvas.offsetHeight; crtW = crtCanvas.width; crtH = crtCanvas.height; } });
 setupCRT(); setInterval(()=>{ drawCRT(); }, 90);
 // small random lightning occasionally
 setInterval(()=>{ if(Math.random()<0.08) flashLightning(); }, 1600);
@@ -352,6 +418,66 @@ document.getElementById('btnReset').addEventListener('click', resetAll);
 
 // quick keyboard
 document.getElementById('input').addEventListener('keydown', (e)=>{ if(e.ctrlKey && e.key==='Enter'){ convert(); }});
+
+/* ==================================================
+   🔥 毒レベル演出フルセット
+================================================== */
+function applyPoisonEffects(lv){
+  updatePoisonLevel(lv);
+  poisonBackground(lv);
+  poisonShake(lv);
+  poisonFog(lv);
+  poisonNoise(lv);
+}
+
+/* 背景変色 */
+function poisonBackground(lv){
+  const bg = document.body;
+  const colors = {
+    1:"#0d0d0d", 2:"#1a1a1a", 3:"#251a1a",
+    4:"#331a1a", 5:"#400000", 6:"4d0000", 7:"#550033"
+  };
+  bg.style.transition = "background 0.6s";
+  bg.style.background = colors[lv] || "#000";
+}
+
+/* 画面揺れ */
+function poisonShake(lv){
+  const wrapper = document.getElementById("wrap");
+  if(!wrapper) return;
+  if(lv < 5){ wrapper.style.animation = "none"; return; }
+  wrapper.classList.add('shake');
+  setTimeout(()=> wrapper.classList.remove('shake'), 500);
+}
+
+/* 黒い靄（fog） */
+function poisonFog(lv){
+  const fog = document.getElementById("fogLayer");
+  if(!fog) return;
+  fog.style.opacity = lv >= 3 ? Math.min(0.9, 0.35 + lv*0.05) : 0;
+}
+
+/* ノイズ */
+function poisonNoise(lv){
+  // placeholder if you add separate noise layer
+}
+
+// level control binding
+const levelEl = document.getElementById('level');
+levelEl.addEventListener('input',(e)=>{ const v = Number(e.target.value); updatePoisonLevel(v); applyPoisonEffects(v); });
+updatePoisonLevel(Number(levelEl.value));
+
+/* fog layers insertion */
+const fogMain = document.createElement('div');
+fogMain.id = "fogLayer";
+document.body.appendChild(fogMain);
+
+const f1 = document.createElement('div');
+f1.id = "fogLayer1"; fogMain.appendChild(f1);
+const f2 = document.createElement('div');
+f2.id = "fogLayer2"; fogMain.appendChild(f2);
+const f3 = document.createElement('div');
+f3.id = "fogLayer3"; fogMain.appendChild(f3);
 
 </script>
 </body>
