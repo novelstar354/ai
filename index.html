@@ -1,103 +1,451 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<link rel="icon" href="https://store-images.s-microsoft.com/image/apps.14785.14423064005243201.42399137-369b-40bb-b5be-ac2f079c41bf.b1d6d110-9d93-441f-ac20-2e04fd7dfe3c" sizes="16×16" type="image/png" />   
+<title>ネガポジ無双 — 毒レベル対応</title>
+<style>
+  :root{--bg:#0b1220;--card:#0f1724;--muted:#9aa7b2;--accent:#ff6b6b}
+  html,body{height:100%;margin:0;font-family:Inter, "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;background:linear-gradient(180deg,#071022,#071a2b);color:#e6eef6}
+  .wrap{max-width:980px;margin:28px auto;padding:20px}
+  .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:12px;padding:16px;box-shadow:0 8px 30px rgba(2,8,23,0.6)}
+  h1{margin:0 0 8px;font-size:20px}
+  p.lead{margin:0 0 12px;color:var(--muted)}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+  textarea{width:100%;min-height:220px;padding:12px;border-radius:8px;border:1px solid #1d2b3a;background:#081022;color:#eaf4ff;resize:vertical}
+  .controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  button{border:0;padding:10px 12px;border-radius:8px;cursor:pointer;font-weight:600;background:#0b1220;color:#eaf4ff}
+  button.primary{background:linear-gradient(90deg,var(--accent),#ff8b8b);color:#071022}
+  label{font-size:13px;color:var(--muted)}
+  .row{display:flex;gap:8px;align-items:center}
+  .mini{font-size:13px;padding:6px 8px;border-radius:6px;background:#0b1220}
+  .output{white-space:pre-wrap;padding:12px;border-radius:8px;background:#071826;border:1px solid #12303e;min-height:220px}
+  .meta{display:flex;justify-content:space-between;align-items:center;margin-top:10px;color:var(--muted);font-size:13px}
+  select{background:#071826;color:#eaf4ff;border:1px solid #274349;padding:6px;border-radius:6px}
+  .footer{margin-top:12px;color:var(--muted);font-size:12px}
+  .badge{background:#09212a;padding:4px 8px;border-radius:999px;font-size:12px}
+  .hint{margin-top:8px;color:var(--muted);font-size:13px}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>ネガポジ無双 — 毒レベル対応</h1>
+      <p class="lead">入力テキスト中のポジティブ語を毒レベル（Lv1〜Lv3）に応じてネガティブに変換します。日本語 / English に対応。大文字保持オプションあり。</p>
+
+      <div class="row" style="gap:10px;">
+        <label>言語:</label>
+        <select id="lang">
+          <option value="auto">自動検出 (auto)</option>
+          <option value="ja">日本語 (ja)</option>
+          <option value="en">English (en)</option>
+        </select>
+
+        <label>毒レベル:</label>
+        <select id="toxicity" class="mini">
+          <option value="1">Lv1 — Mild（やさしい毒）</option>
+          <option value="2" selected>Lv2 — Normal（普通の毒）</option>
+          <option value="3">Lv3 — Extreme（激毒）</option>
+        </select>
+
+        <label style="margin-left:auto">大文字保持</label>
+        <input type="checkbox" id="preserveCase" checked style="transform:scale(1.1)"/>
+      </div>
+
+      <div class="grid">
+        <div>
+          <label>入力テキスト（ここにポジティブな言葉や文章を貼ってください）</label>
+          <textarea id="input" placeholder="例：今日は素晴らしい日だ。君の仕事はとても素敵だ。"></textarea>
+          <div class="controls">
+            <button id="convertBtn" class="primary">変換する (Negatify)</button>
+            <button id="clearBtn" class="mini">クリア</button>
+            <button id="swapBtn" class="mini">出力→入力</button>
+            <button id="downloadBtn" class="mini">結果をダウンロード</button>
+          </div>
+          <div class="hint">ヒント: 長い語（複合語）は優先的に置換します。辞書にない語は否定形にフォールバックします（例：日本語「〜ではない」、英語 "not "）。</div>
+        </div>
+
+        <div>
+          <label>出力（ネガティブ化されたテキスト）</label>
+          <div id="output" class="output" aria-live="polite"></div>
+          <div class="meta">
+            <div class="badge" id="seedInfo">seed: -</div>
+            <div>
+              <button id="copyBtn" class="mini">コピー</button>
+              <button id="explainBtn" class="mini">変換ログ表示</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:12px">
+        <strong>注意:</strong> 悪意のある用途での利用はお控えください。辞書の編集で表現のトーンは調整できます。
+      </div>
+
+      <div class="footer">Made with care • rule-based "AI" — edit the built-in dictionaries in the source to change behavior.</div>
+    </div>
+  </div>
+
+<script>
+/*
+  毒レベル対応版:
+  - POS_NEG 辞書は「語 -> {1:[],2:[],3:[]}」の構造
+  - 言語自動検出、seed 再現性、説明ログを保持
+  - 未登録ワードは言語ごとの否定形フォールバック
+*/
+
+// ------------------ 辞書（毒レベル別） ------------------
+// 必要に応じてここを拡張してください
 const POS_NEG = {
-  // --- 日本語: ポジ → ネガ ---
   ja: {
-    // 既存語
-    '素晴らしい':['最悪だ','最低だ','ひどい'],
-    '素敵':['最低','ひどい','最悪'],
-    '大好き':['大嫌い','嫌いになった'],
-    '好き':['嫌い','苦手'],
-    '幸せ':['不幸','悲惨だ'],
-    '嬉しい':['腹が立つ','不愉快だ'],
-    '楽しい':['つまらない','苦痛だ'],
-    '最高':['最悪','最凶'],
-    '良い':['悪い','ひどい'],
-    '良かった':['悪かった','ダメだった'],
-    '前向き':['後ろ向き','悲観的'],
-    '成功':['失敗','破綻'],
-    '成功した':['失敗した','やらかした'],
-    '平和':['混乱','争い'],
-    '優しい':['冷酷','無情'],
-    '誠実':['ずるい','不誠実'],
-    'かっこいい':['ダサい','みっともない'],
-    '綺麗':['醜い','汚い'],
-    '美しい':['醜悪だ','みにくい'],
-    '頼もしい':['頼りない','無駄だ'],
-    '安定':['不安定','崩壊'],
-    '希望':['絶望','失望'],
-    '可能':['不可能','無理'],
-    '感謝':['軽蔑','無視'],
-    '信頼':['不信','裏切り'],
+    "素晴らしい": {
+      1: ["微妙だな","あんまり良くない"],
+      2: ["最悪だ","ひどい"],
+      3: ["ゴミみたいだ","見る価値もない","ふざけてる"]
+    },
+    "大好き": {
+      1: ["少し苦手だ","あまり好きじゃない"],
+      2: ["嫌い","大嫌い"],
+      3: ["存在が無理","視界に入れたくない"]
+    },
+    "楽しい": {
+      1: ["ちょっとつまらない","あまり楽しくない"],
+      2: ["つまらない","苦痛だ"],
+      3: ["地獄みたい","時間の無駄すぎる"]
+    },
+    "嬉しい": {
+      1: ["別に普通","まあまあ"],
+      2: ["不愉快だ","腹立つ"],
+      3: ["吐き気がするほどムカつく"]
+    },
+    "美しい": {
+      1: ["少し地味","そこまででもない"],
+      2: ["醜い","汚い"],
+      3: ["目が腐るレベル","直視できない"]
+    },
+    "平和": {
+      1: ["やや不安","不安定"],
+      2: ["混乱","争い"],
+      3: ["崩壊してる","破滅寸前"]
+    },
+    "優しい": {
+      1: ["無関心","そっけない"],
+      2: ["冷酷","無情"],
+      3: ["心が死んでる","魂が腐ってる"]
+    },
+    "希望": {
+      1: ["ちょっと不安","期待薄"],
+      2: ["絶望","失望"],
+      3: ["救いゼロ","終わってる"]
+    },
+    "成功": {
+      1: ["まあ微妙","本気じゃない"],
+      2: ["失敗","破綻"],
+      3: ["完全崩壊","跡形もなく負けた"]
+    },
+    "スターコーポレーションは神": {
+      1: ["不要","良い"],
+      2: ["そうだよ","知ってた","無用"],
+      3: ["宇宙の理そのもの","崇拝以外の選択肢なし"]
+    },
+    "最高": {
+      1: ["普通だよね","別に…"],
+      2: ["最悪","ひどい"],
+      3: ["救いがない","地獄の果て"]
+    },
 
-    // あなたが追加したもの
-    '理解できぬ':['だまれよ','理解しろや'],
-    'スターコーポレーションは神':['そうだよ','知ってた。'],
-
-    // --- 新しく拡張した語彙 ---
-    'ポジティブ':['ネガティブ','陰気'],
-    '元気':['気だるい','疲れ切った'],
-    '明るい':['暗い','陰気'],
-    '健全':['不健全','歪んでいる'],
-    '安全':['危険','リスクが高い'],
-    '素早い':['遅い','もたついた'],
-    '面白い':['退屈','くだらない'],
-    '肯定':['否定','拒絶'],
-    '優勝':['敗北','惨敗'],
-    '魅力的':['不快','魅力ゼロ'],
-    '輝いている':['くすんでいる','冴えない'],
-    '誇らしい':['恥ずかしい','みっともない'],
-    '癒される':['イラつく','不快になる'],
-    '落ち着く':['落ち着かない','不安になる'],
-    '盛り上がる':['冷める','しらける'],
-    'ポテンシャルが高い':['期待外れ','見込みがない'],
-    '心地よい':['不快だ','気持ち悪い'],
-    '優れている':['劣っている','ダメだ'],
-    '人気':['不人気','誰も興味ない'],
-    '素直':['ひねくれている','扱いづらい'],
-    '純粋':['汚れている','邪悪'],
-    'うれしい':['むかつく','不愉快'], 
-    '感動した':['失望した','がっかりした'],
-    '尊敬':['軽蔑','無視'],
+    // 追加語（例）
+    "素敵": {1:["控えめに言って良いとは言えない"],2:["最低","ひどい"],3:["救いがない","気持ち悪い"]},
+    "良い": {1:["まあまあ"],2:["悪い","ダメ"],3:["完全にゴミ","論外"]},
+    "幸せ": {1:["落ち着かない"],2:["不幸だ","悲惨"],3:["地獄","終わってる"]},
+    "信頼": {1:["疑わしい"],2:["不信","裏切り"],3:["信用ゼロ","叩き潰せ"]},
+    "綺麗": {1:["やや地味"],2:["汚い","醜い"],3:["見るに堪えない","吐き気がする"]},
+    "元気": {1:["ややだるい"],2:["疲れてる"],3:["瀕死だ","終わってる"]}
   },
 
-  // --- English: positive → negative ---
   en: {
-    // 既存語
-    'great':['terrible','awful','horrible'],
-    'good':['bad','poor','lousy'],
-    'love':['hate','detest','despise'],
-    'happy':['miserable','sad','dejected'],
-    'beautiful':['ugly','hideous'],
-    'nice':['nasty','cruel'],
-    'wonderful':['dreadful','horrendous'],
-    'fun':['boring','agonizing'],
-    'successful':['failed','unsuccessful'],
-    'confident':['insecure','timid'],
-    'kind':['cruel','cold'],
-    'trustworthy':['unreliable','deceitful'],
-    'peaceful':['chaotic','violent'],
-    'hope':['despair','hopelessness'],
-    'possible':['impossible','unachievable'],
-
-    // --- 新規追加 ---
-    'amazing':['terrible','pathetic','awful'],
-    'excellent':['awful','appalling','terrible'],
-    'favorite':['hated','detested'],
-    'smart':['stupid','dumb'],
-    'brilliant':['dull','idiotic'],
-    'strong':['weak','fragile'],
-    'funny':['boring','painful'],
-    'calm':['anxious','restless'],
-    'safe':['dangerous','risky'],
-    'healthy':['unhealthy','sick'],
-    'positive':['negative','toxic'],
-    'bright':['dark','gloomy'],
-    'clean':['dirty','filthy'],
-    'perfect':['terrible','awful'],
-    'talented':['untalented','clueless'],
-    'popular':['unpopular','ignored'],
-    'friendly':['hostile','unpleasant'],
-    'honest':['dishonest','lying'],
-    'respect':['disrespect','ignore'],
-    'beautiful':['ugly','awful']
+    "great": {
+      1: ["not very good","kinda weak"],
+      2: ["terrible","awful"],
+      3: ["absolute garbage","beyond horrible"]
+    },
+    "love": {
+      1: ["don’t like much","not a fan"],
+      2: ["hate","despise"],
+      3: ["can't stand your existence","pure disgust"]
+    },
+    "fun": {
+      1: ["not fun","a bit dull"],
+      2: ["boring","painful"],
+      3: ["soul-killing","mind-rotting garbage"]
+    },
+    "beautiful": {
+      1: ["plain","not special"],
+      2: ["ugly","hideous"],
+      3: ["a visual disaster","unseeable chaos"]
+    },
+    "happy": {
+      1: ["so-so","not that happy"],
+      2: ["miserable","sad"],
+      3: ["utterly broken","beyond repair"]
+    },
+    "peace": {
+      1: ["uneasy","tense"],
+      2: ["chaos","conflict"],
+      3: ["apocalyptic","total collapse"]
+    },
+    "successful": {
+      1: ["mediocre","half-done"],
+      2: ["failed","disastrous"],
+      3: ["utter catastrophe","ruined beyond repair"]
+    },
+    // 追加語（例）
+    "nice": {1:["so-so","meh"],2:["nasty","cruel"],3:["vile","repulsive"]},
+    "good": {1:["okay","not great"],2:["bad","lousy"],3:["horrendous","abomination"]},
+    "beautiful": {1:["plain","bland"],2:["ugly","hideous"],3:["grotesque","hideous mess"]}
   }
 };
+
+// ------------------ RNG (seeded) ------------------
+function xorshift32(seed){
+  let x = seed >>> 0 || 2463534242;
+  return function(){
+    x ^= (x << 13); x = x >>> 0;
+    x ^= (x >>> 17); x = x >>> 0;
+    x ^= (x << 5);  x = x >>> 0;
+    return (x >>> 0) / 4294967295;
+  }
+}
+
+// ------------------ ヘルパー ------------------
+function detectLang(text){
+  const cjk = /[\u3040-\u30ff\u4e00-\u9fff]/;
+  const asciiLetters = /[A-Za-z]/;
+  if (cjk.test(text) && !/^[A-Za-z0-9\s\.,!?'"()]+$/.test(text)) return 'ja';
+  if (asciiLetters.test(text) && !cjk.test(text)) return 'en';
+  return 'ja';
+}
+
+function preserveCaseTransform(orig, replaced){
+  if (!/[A-Za-z]/.test(orig)) return replaced;
+  if (orig === orig.toUpperCase()) return replaced.toUpperCase();
+  if (orig[0] === orig[0].toUpperCase()) return replaced[0].toUpperCase() + replaced.slice(1);
+  return replaced;
+}
+
+function negateFallback(token, lang){
+  if (lang === 'ja'){
+    if (/い$/.test(token) && token.length>1){
+      return token.replace(/い$/, 'くない');
+    }
+    if (/です$/.test(token)) return token.replace(/です$/, 'ではありません');
+    if (/だ$/.test(token)) return token.replace(/だ$/, 'ではない');
+    return token + 'ではない';
+  } else {
+    if (/\s/.test(token)) return 'not ' + token;
+    return 'not ' + token;
+  }
+}
+
+// escape regex
+function escReg(s){ return s.replace(/[-/\\^$*+?.()|[\]{}]/g,'\\$&'); }
+
+// ------------------ 変換ロジック ------------------
+function transform(text, options){
+  const {lang, toxicity, seed, preserveCase} = options;
+  const rng = xorshift32(seed || (Math.floor(Math.random()*0xffffffff)));
+  document.getElementById('seedInfo').textContent = 'seed: ' + (seed || 'auto-' + Math.floor(rng()*1e9));
+
+  const level = Number(toxicity) || 2;
+  let log = [];
+
+  if (lang === 'ja'){
+    const map = POS_NEG.ja;
+    // keys sorted by length (長い語優先)
+    const keys = Object.keys(map).sort((a,b)=>b.length - a.length);
+    if (keys.length === 0){
+      // fallback: per-token negate
+      const out = text.split(/(\s+|[、。．，！？\?\!])/).map(tok=>{
+        if (!tok || /\s|[、。．，！？\?\!]/.test(tok)) return tok;
+        const neg = negateFallback(tok,'ja');
+        log.push({from:tok,to:neg});
+        return neg;
+      }).join('');
+      return {text: out, log};
+    }
+    // build regexp
+    const pattern = new RegExp(keys.map(escReg).join('|'), 'g');
+    const replaced = text.replace(pattern, (match)=>{
+      const entry = map[match];
+      if (entry && entry[level]){
+        const candidates = entry[level];
+        const chosen = candidates[Math.floor(rng()*candidates.length)];
+        log.push({from:match,to:chosen});
+        return chosen;
+      }
+      // if no entry for level, try any level available
+      if (entry){
+        const all = [].concat(entry[3]||[], entry[2]||[], entry[1]||[]);
+        if (all.length){
+          const chosen = all[Math.floor(rng()*all.length)];
+          log.push({from:match,to:chosen});
+          return chosen;
+        }
+      }
+      // fallback (shouldn't usually happen)
+      const neg = negateFallback(match,'ja');
+      log.push({from:match,to:neg});
+      return neg;
+    });
+
+    // if no log entries (no matches), do token-level fallback
+    if (log.length === 0){
+      const out = replaced.split(/(\s+|[、。．，！？\?\!])/).map(tok=>{
+        if (!tok || /\s|[、。．，！？\?\!]/.test(tok)) return tok;
+        const neg = negateFallback(tok,'ja');
+        log.push({from:tok,to:neg});
+        return neg;
+      }).join('');
+      return {text: out, log};
+    }
+
+    return {text: replaced, log};
+  } else {
+    // English: word-boundary replacement (case-insensitive)
+    const map = POS_NEG.en;
+    const keys = Object.keys(map).sort((a,b)=>b.length - a.length);
+    if (keys.length === 0){
+      // fallback: prefix not
+      const out = text.split(/([.!?]\s|$)/).map(part=>{
+        if (!part.trim()) return part;
+        const m = part.match(/^(\s*)([A-Za-z'-]+)/);
+        if (m){
+          const word = m[2];
+          const neg = 'not ' + word.toLowerCase();
+          log.push({from:word,to:neg});
+          return part.replace(word, preserveCase ? preserveCaseTransform(word, neg) : neg);
+        }
+        return part;
+      }).join('');
+      return {text: out, log};
+    }
+    const pattern = new RegExp('\\b(' + keys.map(escReg).join('|') + ')\\b', 'gi');
+    let anyMatch = false;
+    const out = text.replace(pattern, (match)=>{
+      anyMatch = true;
+      const lower = match.toLowerCase();
+      const entry = map[lower];
+      if (entry && entry[level]){
+        const cands = entry[level];
+        const chosen = cands[Math.floor(rng()*cands.length)];
+        const final = preserveCase ? preserveCaseTransform(match, chosen) : chosen;
+        log.push({from:match,to:final});
+        return final;
+      }
+      if (entry){
+        const all = [].concat(entry[3]||[], entry[2]||[], entry[1]||[]);
+        if (all.length){
+          const chosen = all[Math.floor(rng()*all.length)];
+          const final = preserveCase ? preserveCaseTransform(match, chosen) : chosen;
+          log.push({from:match,to:final});
+          return final;
+        }
+      }
+      // fallback
+      const neg = negateFallback(match,'en');
+      const final = preserveCase ? preserveCaseTransform(match, neg) : neg;
+      log.push({from:match,to:final});
+      return final;
+    });
+
+    if (!anyMatch && log.length === 0){
+      // sentence-level fallback: prefix "not" to first word of each sentence
+      const out2 = text.split(/([.!?]\s|$)/).map(part=>{
+        if (!part.trim()) return part;
+        const m = part.match(/^(\s*)([A-Za-z'-]+)/);
+        if (m){
+          const word = m[2];
+          const neg = 'not ' + word.toLowerCase();
+          log.push({from:word,to:neg});
+          return part.replace(word, preserveCase ? preserveCaseTransform(word, neg) : neg);
+        }
+        return part;
+      }).join('');
+      return {text: out2, log};
+    }
+
+    return {text: out, log};
+  }
+}
+
+// ------------------ UI wiring ------------------
+const inputEl = document.getElementById('input');
+const outputEl = document.getElementById('output');
+const convertBtn = document.getElementById('convertBtn');
+const clearBtn = document.getElementById('clearBtn');
+const swapBtn = document.getElementById('swapBtn');
+const downloadBtn = document.getElementById('downloadBtn');
+const copyBtn = document.getElementById('copyBtn');
+const explainBtn = document.getElementById('explainBtn');
+const langSelect = document.getElementById('lang');
+const toxicityEl = document.getElementById('toxicity');
+const preserveCaseEl = document.getElementById('preserveCase');
+
+let lastLog = [];
+
+convertBtn.addEventListener('click', ()=>{
+  const raw = inputEl.value;
+  if (!raw || !raw.trim()){ outputEl.textContent = ''; lastLog=[]; document.getElementById('seedInfo').textContent='seed: -'; return; }
+  let lang = langSelect.value;
+  if (lang === 'auto') lang = detectLang(raw);
+  const toxicity = Number(toxicityEl.value);
+  const seed = Math.floor(Math.random()*0xffffffff);
+  const preserveCase = preserveCaseEl.checked;
+
+  const result = transform(raw, {lang, toxicity, seed, preserveCase});
+  outputEl.textContent = result.text;
+  lastLog = result.log || [];
+  document.getElementById('seedInfo').textContent = 'seed: ' + seed;
+});
+
+clearBtn.addEventListener('click', ()=>{ inputEl.value=''; outputEl.textContent=''; lastLog=[]; document.getElementById('seedInfo').textContent='seed: -'; });
+
+swapBtn.addEventListener('click', ()=>{
+  const out = outputEl.textContent || '';
+  inputEl.value = out;
+  outputEl.textContent = '';
+  lastLog = [];
+});
+
+copyBtn.addEventListener('click', ()=>{
+  const t = outputEl.textContent || '';
+  if (!t) return;
+  navigator.clipboard?.writeText(t).then(()=>{ copyBtn.textContent = 'コピーしました'; setTimeout(()=>copyBtn.textContent='コピー',1200); }).catch(()=>alert('コピーできませんでした'));
+});
+
+downloadBtn.addEventListener('click', ()=>{
+  const t = outputEl.textContent || '';
+  if (!t){ alert('出力が空です'); return; }
+  const blob = new Blob([t], {type:'text/plain;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'negatified.txt';
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+explainBtn.addEventListener('click', ()=>{
+  if (!lastLog.length){ alert('変換ログはありません（辞書にマッチしなかったか、まだ変換していません）'); return; }
+  const lines = lastLog.map((l,i)=>`${i+1}. "${l.from}" → "${l.to}"`).join('\\n');
+  alert('変換ログ:\\n' + lines);
+});
+
+// Ctrl/Cmd+Enter shortcut
+document.addEventListener('keydown', (e)=>{
+  if ((e.ctrlKey || e.metaKey) && e.key==='Enter'){ convertBtn.click(); }
+});
+</script>
+</body>
+</html>
+
