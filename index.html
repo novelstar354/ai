@@ -56,6 +56,36 @@ button.alt{background:transparent;border:1px solid rgba(255,255,255,0.06)}
 @keyframes fogMove2 {0%{transform:translate(0,0) scale(1);} 25%{transform:translate(25px,-10px) scale(1.06);} 50%{transform:translate(-30px,20px) scale(1.04);} 75%{transform:translate(10px,-25px) scale(1.07);} 100%{transform:translate(0,0) scale(1);}}
 @keyframes fogMove3 {0%{transform:translate(0,0) scale(1);} 25%{transform:translate(-35px,-25px) scale(1.08);} 50%{transform:translate(40px,20px) scale(1.05);} 75%{transform:translate(-20px,30px) scale(1.1);} 100%{transform:translate(0,0) scale(1);}}
 /* 霧アニメーション終了 */
+
+/* --- 落下破片の見た目とアニメ --- */
+.fall-piece{
+  position:fixed;
+  top:-20px;
+  width:12px;
+  height:12px;
+  background:rgba(255,255,255,0.6);
+  backdrop-filter:blur(2px);
+  border-radius:2px;
+  animation: fall-down linear forwards;
+  /* --- 色収差グロー追加 --- */
+  box-shadow:
+    2px 0 4px rgba(255,0,0,0.6),   /* 赤 */
+   -2px 0 4px rgba(0,200,255,0.6); /* シアン */
+}
+  position:fixed;
+  top:-20px;
+  width:12px;
+  height:12px;
+  background:rgba(255,255,255,0.6);
+  backdrop-filter:blur(2px);
+  border-radius:2px;
+  animation: fall-down linear forwards;
+}
+
+@keyframes fall-down{
+  0%{transform:translateY(0) rotate(0deg);} 
+  100%{transform:translateY(110vh) rotate(360deg);} 
+}
 </style>
 </head>
 <body>
@@ -501,6 +531,34 @@ function triggerFullScreenShatter(){
 if(Math.random()<0.25){
   setTimeout(triggerFullScreenShatter,400);
 }
+
+// --- 破片の落下アニメ（後処理） ---
+function spawnFallingFragments(){
+  const container=document.createElement('div');
+  container.className='fall-container';
+  for(let i=0;i<25;i++){
+    const f=document.createElement('div');
+    f.className='fall-piece';
+    f.style.left=Math.random()*100+'vw';
+    f.style.animationDuration=(2+Math.random()*3)+'s';
+    f.style.opacity=0.3+Math.random()*0.4;
+    container.appendChild(f);
+  }
+  document.body.appendChild(container);
+  setTimeout(()=>container.remove(),5000);
+}
+
+// フルクラッシュ後に落下破片を追加
+setTimeout(()=>{
+  if(typeof triggerFullScreenShatter==='function'){
+    const original = triggerFullScreenShatter;
+    triggerFullScreenShatter = function(){
+      original();
+      setTimeout(spawnFallingFragments,600);
+    }
+  }
+},50);
+
 </script>
 </body>
 </html>
