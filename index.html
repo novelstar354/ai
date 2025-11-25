@@ -1,175 +1,237 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<title>ポジティブ→ネガティブ変換AI：ネガポジ無双</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>ネガティブ変換AI — やばいver（画面割れ修正版）</title>
 <style>
-  body{
-    background:#111;
-    color:#fff;
-    font-family:sans-serif;
-    padding:40px;
-    line-height:1.8;
-  }
-  h1{
-    font-size:28px;
-    text-shadow:0 0 8px #ff4b4b;
-  }
-  textarea{
-    width:100%;
-    height:120px;
-    padding:10px;
-    background:#222;
-    color:#fff;
-    border:1px solid #444;
-    border-radius:6px;
-    font-size:16px;
-    box-shadow:0 0 10px #ff4b4b55;
-  }
-  select,button{
-    padding:10px 16px;
-    margin-top:12px;
-    background:#333;
-    color:#fff;
-    border:1px solid #555;
-    border-radius:6px;
-    font-size:15px;
-    cursor:pointer;
-    transition:0.3s;
-  }
-  button:hover{
-    box-shadow:0 0 12px #ff4b4b;
-  }
-  #output{
-    margin-top:20px;
-    padding:15px;
-    background:#1a1a1a;
-    border-left:4px solid #ff4b4b;
-    min-height:100px;
-    white-space:pre-wrap;
-    border-radius:6px;
-    box-shadow:0 0 15px #ff4b4b44;
-  }
+ body{
+   background:#000;
+   color:#fff;
+   font-family:sans-serif;
+   margin:0; padding:40px;
+   overflow-x:hidden;
+ }
+ h1{ text-align:center; font-size:2.4rem; margin-bottom:20px; }
+ textarea{
+   width:100%;
+   height:180px;
+   padding:12px;
+   background:#111;
+   color:#fff;
+   border:1px solid #444;
+   border-radius:10px;
+   resize:none;
+   font-size:1rem;
+ }
+ select, button{
+   padding:10px 16px;
+   margin-top:10px;
+   font-size:1rem;
+   border:none;
+   border-radius:10px;
+ }
+ select{ background:#222; color:#fff; }
+ button{
+   background:#ff006c;
+   color:#fff;
+   cursor:pointer;
+   transition:0.2s;
+ }
+ button:hover{ transform:scale(1.08); box-shadow:0 0 15px #ff4fa0; }
+ #output{
+   margin-top:25px;
+   padding:20px;
+   background:#111;
+   min-height:160px;
+   border-radius:10px;
+   border:1px solid #333;
+   font-size:1.1rem;
+   position:relative;
+   overflow:hidden;
+ }
 
-  /* 発光アニメ */
-  @keyframes glow {
-    0% { box-shadow:0 0 5px #ff4b4b88; }
-    50% { box-shadow:0 0 20px #ff4b4bcc; }
-    100% { box-shadow:0 0 5px #ff4b4b88; }
-  }
-  .glow{
-    animation:glow 2s infinite;
-  }
+ /* ✦ やばい演出：発光パルス */
+ .pulse{
+   animation:pulseGlow 1.3s infinite;
+ }
+ @keyframes pulseGlow{
+   0%{ box-shadow:0 0 0px #ff0088; }
+   50%{ box-shadow:0 0 25px #ff0088; }
+   100%{ box-shadow:0 0 0px #ff0088; }
+ }
+
+ /* ✦ ノイズ */
+ #noise{
+   pointer-events:none;
+   position:fixed;
+   top:0; left:0;
+   width:100%; height:100%;
+   background:url('https://upload.wikimedia.org/wikipedia/commons/5/5f/Static.gif');
+   opacity:0;
+   transition:0.4s;
+   mix-blend-mode:screen;
+ }
+
+ /* ✦ 画面割れ（SVGを使う） */
+ #screenCrack{
+   pointer-events:none;
+   position:fixed;
+   inset:0;
+   display:flex;
+   align-items:center;
+   justify-content:center;
+   opacity:0;
+   transition:opacity 0.35s ease-in-out;
+   mix-blend-mode:screen;
+ }
+ #screenCrack svg{ width:120%; height:120%; transform:scale(1.05); filter:drop-shadow(0 0 24px rgba(255,0,128,0.6)); }
 </style>
 </head>
-
 <body>
-<h1 class="glow">ポジティブ→ネガティブ変換AI：ネガポジ無双</h1>
+<h1>ネガティブ変換AI — やばい版（画面割れ修正版）</h1>
 
-<textarea id="input" placeholder="ポジティブな文章を入力..."></textarea>
-
+<textarea id="inputText" placeholder="ポジティブな文章を入力"></textarea>
 <br>
-<label>毒の強さレベル：</label>
-<select id="level" class="glow">
-  <option value="1">レベル1（やや毒）</option>
-  <option value="2">レベル2（ふつう）</option>
-  <option value="3">レベル3（強め）</option>
+<select id="mode">
+  <option value="a">A：ツッコミ毒舌</option>
+  <option value="b">B：冷めた皮肉</option>
+  <option value="c">C：ダーク毒舌</option>
+  <option value="d">D：スターコーポレーション式ブラックジョーク</option>
+  <option value="mix">全部混ぜる（最強）</option>
 </select>
-
 <br>
-<button onclick="convertText()" class="glow">変換する</button>
+<button id="convertBtn">ネガティブ変換開始</button>
 
-<div id="output" class="glow"></div>
-<button id="copyBtn" onclick="copyText()" class="glow">コピー</button>
+<div id="output"></div>
+<div id="noise"></div>
+
+<!-- 画面割れSVG（外部依存なし） -->
+<div id="screenCrack" aria-hidden="true">
+  <svg viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid meet">
+    <g stroke="rgba(255,255,255,0.85)" stroke-width="6" fill="none">
+      <!-- ランダムっぽく複数の線 -->
+      <path d="M600 0 L620 90 L580 150 L630 220 L600 300 L640 390 L600 470 L610 580 L600 800"/>
+      <path d="M600 0 L570 80 L530 140 L500 220 L460 300 L420 360 L380 430 L340 520 L300 720"/>
+      <path d="M0 250 L140 260 L240 340 L360 420 L480 480 L540 520 L680 560 L820 580 L1200 600"/>
+      <path d="M0 460 L180 420 L300 360 L420 330 L540 300 L660 280 L780 260 L900 240 L1200 220"/>
+      <circle cx="600" cy="300" r="18" stroke-width="10" stroke="rgba(255,0,120,0.9)" />
+    </g>
+  </svg>
+</div>
 
 <script>
-// ----------------------------
-// 拡張辞書（大量追加）
-// ----------------------------
-const dict = {
-  "スターコーポレーションは神": {
-    1:["不要"], 2:["いらない"], 3:["崇めるな"]
-  },
-  "最高です": {
-    1:["別にいつも通り"], 2:["まあまあだろ"], 3:["調子乗んな"]
-  },
-  "助かった": {
-    1:["普通だろ"], 2:["むしろ手間だった"], 3:["助けた覚えはない"]
-  },
-  "素敵": {
-    1:["普通"], 2:["別に特別じゃない"], 3:["全然素敵じゃない"]
-  },
-  "嬉しかった": {
-    1:["よかったな"], 2:["それだけ？"], 3:["どうでもいい"]
-  },
-  "ありがとう": {
-    1:["はいはい"], 2:["義務だろ"], 3:["礼はいらん"]
-  },
-  "すばらしい": {
-    1:["普通だな"], 2:["そこまで？"], 3:["幻想見るな"]
-  },
-  "最高に楽しい": {
-    1:["まあまあ"], 2:["たいしたことない"], 3:["騒ぎすぎ"]
-  },
-  "尊い": {
-    1:["普通"], 2:["別に尊くない"], 3:["尊むな"]
-  },
-  "amazing": {
-    1:["ok"], 2:["not amazing"], 3:["stop hyping"]
-  },
-  "wonderful": {
-    1:["fine"], 2:["meh"], 3:["not at all"]
-  },
-  "brilliant": {
-    1:["not bad"], 2:["overrated"], 3:["no it's not"]
-  },
-  "スターコーポレーションは神": {
-    1:["不要"],
-    2:["いらない"],
-    3:["崇めるな"]
-   }"理解できぬ": {
-    1:["理解しろ"], 2:["知っとけ"], 3:["そんなのもわからないの？"]    
-  },
-  "すごい":{1:["まあまあだな","普通だろ"],2:["大したことない","そこまでじゃない"],3:["調子乗るな","どこがだよ"]},
-  "素晴らしい":{1:["悪くはない","普通だな"],2:["別に良くない","期待外れ"],3:["全然ダメ","幻想見るな"]},
-  "最高":{1:["悪くないけどな","まあ普通"],2:["そこまでじゃない","他の方がマシ"],3:["夢見すぎ","どこが最高だよ"]},
-  "かわいい":{1:["普通","そんなでもない"],2:["微妙","魅力薄い"],3:["どこがだよ","無理すんな"]},
-  "かっこいい":{1:["まあ悪くない","普通だな"],2:["別に大したことない","印象薄い"],3:["どこが？","勘違いするな"]},
-  "優しい":{1:["普通","誰でもする"],2:["偽善ぽい","計算だな"],3:["裏ありすぎ","信用できん"]},
-  "助かる":{1:["まあ普通","そうかもな"],2:["別に助かってない","まあないよりマシ"],3:["当たり前だろ","感謝しとけ"]},
-  "嬉しい":{1:["まあ良かったな","ふーん"],2:["そんな喜ぶほど？","大げさだな"],3:["騒ぐな","どうでもいい"]},
-  "ありがとう":{1:["はいはい","まあどうでも"],2:["義務だろ","そこまでのことじゃない"],3:["礼はいらん","黙っとけ"]},
-  "perfect":{1:["not bad","ok-ish"],2:["far from perfect","mid"],3:["delusional","it's trash"]},
-  "beautiful":{1:["not bad","kinda ok"],2:["overrated","nothing special"],3:["nope","stop lying"]},
-  "amazing":{1:["yeah maybe","fine"],2:["not amazing","meh"],3:["no it's not","stop exaggerating"]}
-};
+/* --------------------------------------------------
+   拡張辞書（短め、必要に応じてさらに追加可）
+-------------------------------------------------- */
+const dict=[
+ {p:"最高", n:["どこが？","はいはい誇張しすぎ","せいぜい普通"]},
+ {p:"楽しい", n:["それ本当に？","暇なんだね","必死だな"]},
+ {p:"素晴らしい", n:["大げさ","思い込み激しいね","幻想じゃない？"]},
+ {p:"嬉しい", n:["勘違い乙","それで幸せとか安上がり","一瞬だけでしょ"]},
+ {p:"ありがとう", n:["恩着せがましい","別にいらん","義務です"]},
+ {p:"好き", n:["都合よすぎ","それ依存だよ","まあどうでもいい"]},
+ {p:"愛", n:["思い込み","危ない","目を覚ませ"]},
+ {p:"スターコーポレーション", n:["迷企業","ブラックの極み","社会の闇"]},
+ {p:"成功", n:["たまたま","運だけ","勘違い野郎"]},
+ {p:"平和", n:["退屈","油断","ぬるい世界"]},
+ {p:"感謝", n:["自己満","押し付け","ダサい"]},
+ {p:"成長", n:["気のせい","遅い","ずれてる"]},
+ {p:"すごい", n:["普通","大したことない","盛りすぎ"]},
+ {p:"かわいい", n:["主観強め","量産型","無難"]},
+ {p:"美しい", n:["判断甘い","幻想","光の加減だけ"]},
+ {p:"平気", n:["嘘","強がり","無理してる"]},
+ {p:"安心", n:["油断","甘い","根拠なし"]}
+];
 
-// ----------------------------
-// 変換処理
-// ----------------------------
-function convertText(){
-  const text = document.getElementById("input").value;
-  const level = document.getElementById("level").value;
-  let result = text;
-
-  for(const key in dict){
-    const patt = new RegExp(key, "g");
-    if(result.includes(key)){
-      const rep = dict[key][level][Math.floor(Math.random()*dict[key][level].length)];
-      result = result.replace(patt, rep);
-    }
+/* --------------------------------------------------
+   文章全体変換（スタイル別）
+-------------------------------------------------- */
+function rewriteWhole(text,mode){
+  switch(mode){
+    case "a": return `はいはい。${text} とか言っちゃうあたり、ちょっと安直すぎない？`;
+    case "b": return `まあ別にいいけど、${text} って客観的には普通だよ。`;
+    case "c": return `夢見てんな。「${text}」とか言ってる時点で痛いぞ。`;
+    case "d": return `スターコーポレーションの新人研修以下だな。「${text}」って。`;
+    case "mix":
+      const arr=[
+        `はいはい。${text} って浅いな。`,
+        `まあいいけど、${text} は現実見えてないよ。`,
+        `闇深すぎ。「${text}」って言うなよ…。`,
+        `スターコーポレーションが泣いてるぞ。「${text}」。`
+      ];
+      return arr[Math.floor(Math.random()*arr.length)];
   }
-
-  document.getElementById("output").textContent = result || "（結果がここに出ます）";
 }
 
-// ----------------------------
-// コピー
-// ----------------------------
-function copyText(){
-  const text = document.getElementById("output").textContent;
-  navigator.clipboard.writeText(text).then(()=>alert("コピーしました！"));
+/* --------------------------------------------------
+   単語置換（ランダム選択）
+-------------------------------------------------- */
+function replaceWords(text){
+  dict.forEach(entry=>{
+    const regex=new RegExp(entry.p,'g');
+    if(text.match(regex)){
+      const rep=entry.n[Math.floor(Math.random()*entry.n.length)];
+      text=text.replace(regex,rep);
+    }
+  });
+  return text;
 }
+
+/* --------------------------------------------------
+   画面割れトリガー（安全に呼べる）
+-------------------------------------------------- */
+function triggerCrack(){
+  const c=document.getElementById('screenCrack');
+  if(!c) return;
+  c.style.opacity=1;
+  // 微小ランダム揺れ
+  const d=document.body;
+  d.style.transition='transform 0.12s ease';
+  d.style.transform='translateX(-6px) rotate(-0.6deg)';
+  setTimeout(()=>{ d.style.transform='translateX(6px) rotate(0.6deg)'; },90);
+  setTimeout(()=>{ d.style.transform='translateX(0) rotate(0)'; d.style.transition=''; },260);
+  setTimeout(()=> c.style.opacity=0,900);
+}
+
+/* --------------------------------------------------
+   メイン変換処理（ボタンから呼ぶ）
+-------------------------------------------------- */
+function doConvert(){
+  const input=document.getElementById("inputText").value.trim();
+  const mode=document.getElementById("mode").value;
+  const out=document.getElementById("output");
+  const noise=document.getElementById("noise");
+
+  if(!input){ out.textContent='入力してください'; return; }
+
+  // ノイズ演出
+  noise.style.opacity=0.28;
+  setTimeout(()=> noise.style.opacity=0, 500);
+
+  // 単語置換
+  let converted=replaceWords(input);
+  // 文章変換
+  converted=rewriteWhole(converted,mode);
+
+  out.textContent=converted;
+  out.classList.add('pulse');
+  setTimeout(()=> out.classList.remove('pulse'),1200);
+
+  // 画面割れ演出
+  triggerCrack();
+}
+
+/* --------------------------------------------------
+   初期化（ボタンに確実にイベントを紐付け）
+   - 以前のバグは「ラップ処理をconvertTextが存在する前に
+     実行していた」ことが原因でした。
+   - ここではボタンに直接イベントを付け、いつでも動作します。
+-------------------------------------------------- */
+(function init(){
+  const btn=document.getElementById('convertBtn');
+  btn.addEventListener('click', doConvert, false);
+})();
 </script>
 </body>
 </html>
