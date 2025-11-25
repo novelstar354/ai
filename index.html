@@ -86,6 +86,14 @@
    mix-blend-mode:screen;
  }
  #screenCrack svg{ width:120%; height:120%; transform:scale(1.05); filter:drop-shadow(0 0 24px rgba(255,0,128,0.6)); }
+@keyframes shake{
+  0%{ transform:translate(0,0) rotate(0); }
+  20%{ transform:translate(-8px,4px) rotate(-1deg); }
+  40%{ transform:translate(6px,-4px) rotate(1deg); }
+  60%{ transform:translate(-6px,6px) rotate(0); }
+  80%{ transform:translate(4px,-2px) rotate(1deg); }
+ 100%{ transform:translate(0,0) rotate(0); }
+}
 </style>
 </head>
 <body>
@@ -107,18 +115,7 @@
 <div id="noise"></div>
 
 <!-- 画面割れSVG（外部依存なし） -->
-<div id="screenCrack" aria-hidden="true">
-  <svg viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid meet">
-    <g stroke="rgba(255,255,255,0.85)" stroke-width="6" fill="none">
-      <!-- ランダムっぽく複数の線 -->
-      <path d="M600 0 L620 90 L580 150 L630 220 L600 300 L640 390 L600 470 L610 580 L600 800"/>
-      <path d="M600 0 L570 80 L530 140 L500 220 L460 300 L420 360 L380 430 L340 520 L300 720"/>
-      <path d="M0 250 L140 260 L240 340 L360 420 L480 480 L540 520 L680 560 L820 580 L1200 600"/>
-      <path d="M0 460 L180 420 L300 360 L420 330 L540 300 L660 280 L780 260 L900 240 L1200 220"/>
-      <circle cx="600" cy="300" r="18" stroke-width="10" stroke="rgba(255,0,120,0.9)" />
-    </g>
-  </svg>
-</div>
+<div id="screenCrack" style="pointer-events:none;position:fixed;top:0;left:0;width:100%;height:100%;background:url('https://i.imgur.com/qw3h6UK.png') center/cover no-repeat;opacity:0;transition:opacity 0.3s ease-out, transform 0.3s ease-out;mix-blend-mode:screen;filter:drop-shadow(0 0 35px rgba(255,0,80,0.8));transform:scale(1.2);"></div>
 
 <script>
 /* --------------------------------------------------
@@ -183,13 +180,15 @@ function replaceWords(text){
 -------------------------------------------------- */
 function triggerCrack(){
   const c=document.getElementById('screenCrack');
-  if(!c) return;
   c.style.opacity=1;
-  // 微小ランダム揺れ
-  const d=document.body;
-  d.style.transition='transform 0.12s ease';
-  d.style.transform='translateX(-6px) rotate(-0.6deg)';
-  setTimeout(()=>{ d.style.transform='translateX(6px) rotate(0.6deg)'; },90);
+  c.style.transform='scale(1)';
+  document.body.style.animation='shake 0.35s';
+  setTimeout(()=>{
+    c.style.opacity=0;
+    c.style.transform='scale(1.2)';
+    document.body.style.animation='';
+  },700);
+},90);
   setTimeout(()=>{ d.style.transform='translateX(0) rotate(0)'; d.style.transition=''; },260);
   setTimeout(()=> c.style.opacity=0,900);
 }
