@@ -542,51 +542,146 @@ f3.id = "fogLayer3"; fogMain.appendChild(f3);
 function triggerFullScreenShatter(){
   const wrapper=document.createElement('div');
   wrapper.className='full-screen-shatter';
-  for(let i=0;i<40;i++){
-    const piece=document.createElement('div');
-    piece.className='shatter-piece';
-    piece.style.setProperty('--rx', (Math.random()*720-360)+'deg');
-    piece.style.setProperty('--ry', (Math.random()*720-360)+'deg');
-    piece.style.setProperty('--tx', (Math.random()*600-300)+'px');
-    piece.style.setProperty('--ty', (Math.random()*600-300)+'px');
-    wrapper.appendChild(piece);
+  for(let i=0; i<12; i++){
+    x += (Math.random()*80 - 40);
+    y += (Math.random()*40 + 20);
+    d += `L${x} ${y} `;
   }
-  document.body.appendChild(wrapper);
-  setTimeout(()=>wrapper.remove(),1500);
+
+  path.setAttribute("d", d);
+  path.setAttribute("stroke", "rgba(255,80,80,0.8)");
+  path.setAttribute("stroke-width", "2");
+  path.setAttribute("fill", "none");
+  path.setAttribute("stroke-linecap","round");
+
+  svg.appendChild(path);
+
+  // 消える演出
+  setTimeout(()=> svg.innerHTML="", 180);
 }
 
-// 毒Lv高いと一定確率で発動
-if(Math.random()<0.25){
-  setTimeout(triggerFullScreenShatter,400);
+/* 落下破片生成 */
+function spawnFallingPieces(count=18){
+  for(let i=0;i<count;i++){
+    const p=document.createElement("div");
+    p.className="fall-piece";
+    p.style.left = (Math.random()*100)+"vw";
+    p.style.animationDuration = (1.5 + Math.random()*1.5)+"s";
+    document.body.appendChild(p);
+    setTimeout(()=>p.remove(), 3000);
+  }
 }
 
-// --- 破片の落下アニメ（後処理） ---
-function spawnFallingFragments(){
-  const container=document.createElement('div');
-  container.className='fall-container';
-  for(let i=0;i<25;i++){
-    const f=document.createElement('div');
-    f.className='fall-piece';
-    f.style.left=Math.random()*100+'vw';
-    f.style.animationDuration=(2+Math.random()*3)+'s';
-    f.style.opacity=0.3+Math.random()*0.4;
-    container.appendChild(f);
-  }
-  document.body.appendChild(container);
-  setTimeout(()=>container.remove(),5000);
+/* 黒い霧のレイヤーを追加 */
+function createFog(){
+  const fog=document.createElement("div");
+  fog.id="fogLayer";
+  fog.innerHTML=`
+    <div id="fogLayer1"></div>
+    <div id="fogLayer2"></div>
+    <div id="fogLayer3"></div>
+  `;
+  document.body.appendChild(fog);
+}
+createFog();
+
+/* 霧のON/OFF */
+function fogOn(){ document.getElementById("fogLayer").style.opacity=1; }
+function fogOff(){ document.getElementById("fogLayer").style.opacity=0; }
+
+/* 文字歪み・波立ち */
+function warpText(text){
+  return text.split("").map(ch=>{
+    const span=document.createElement("span");
+    span.className="glitch";
+    span.textContent=ch;
+    span.style.display="inline-block";
+    span.style.transform=`translate(${Math.random()*2-1}px, ${Math.random()*3-1.5}px) rotate(${Math.random()*2-1}deg)`;
+    return span.outerHTML;
+  }).join("");
 }
 
-// フルクラッシュ後に落下破片を追加
-setTimeout(()=>{
-  if(typeof triggerFullScreenShatter==='function'){
-    const original = triggerFullScreenShatter;
-    triggerFullScreenShatter = function(){
-      original();
-      setTimeout(spawnFallingFragments,600);
-    }
-  }
-},50);
+/* ネガティブ変換ロジック */
+function convertText(){
+  const input=document.getElementById("input").value;
+  const mode=document.getElementById("mode").value;
+  const lv=parseInt(document.getElementById("level").value);
+  let text=input;
 
+  // 辞書すべて置換
+  for(const k in dictionary){
+    const v=dictionary[k];
+    const reg=new RegExp(k,"g");
+    text=text.replace(reg, v);
+  }
+
+  // prefix / suffix
+  const pre = prefix[Math.floor(Math.random()*prefix.length)];
+  const suf = suffix[Math.floor(Math.random()*suffix.length)];
+
+  text = `${pre}${text}${suf}`;
+
+  // モード別歪み
+  if(mode==="F") text = warpText(text);
+
+  return text;
+}
+
+/* 出力処理 */
+function renderOutput(){
+  const out=document.getElementById("textOut");
+  const wrap=document.getElementById("wrap");
+
+  // 音
+  document.getElementById("se_click").play();
+
+  // 変換
+  const t = convertText();
+
+  // ビジュアル演出
+  wrap.classList.add("shake");
+  setTimeout(()=>wrap.classList.remove("shake"), 350);
+
+  document.getElementById("se_impact").play();
+  spawnCrack();
+  flashLightning();
+  spawnFallingPieces(12 + Math.floor(Math.random()*10));
+
+  fogOn();
+  setTimeout(()=>fogOff(), 1600);
+
+  // テキスト出力（1文字ずつ）
+  out.innerHTML="";
+  [...t].forEach((c,i)=>{
+    const span=document.createElement("span");
+    span.textContent=c;
+    span.className="reveal-char";
+    out.appendChild(span);
+    setTimeout(()=>{
+      span.style.opacity=1;
+      span.style.transform="translateY(0)";
+    }, i*18);
+  });
+}
+
+/* ---------------------------
+   イベント
+   ---------------------------*/
+document.getElementById("btnConvert").onclick = renderOutput;
+
+document.getElementById("btnReset").onclick = ()=>{
+  document.getElementById("input").value="";
+  document.getElementById("textOut").innerHTML="";
+};
+
+document.getElementById("level").oninput = e =>
+  updatePoisonLevel(parseInt(e.target.value));
+
+/* CRT開始 */
+setupCRT();
+setInterval(drawCRT, 60);
+window.onresize = setupCRT;
 </script>
+
 </body>
 </html>
