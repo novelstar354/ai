@@ -1,236 +1,358 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>ネガティブ変換AI — ネガポジ無双</title>
+<meta charset="UTF-8">
+<title>最強ネガティブ変換AI - ネガポジ無双</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
- body{
-   background:#000;
-   color:#fff;
-   font-family:sans-serif;
-   margin:0; padding:40px;
-   overflow-x:hidden;
- }
- h1{ text-align:center; font-size:2.4rem; margin-bottom:20px; }
- textarea{
-   width:100%;
-   height:180px;
-   padding:12px;
-   background:#111;
-   color:#fff;
-   border:1px solid #444;
-   border-radius:10px;
-   resize:none;
-   font-size:1rem;
- }
- select, button{
-   padding:10px 16px;
-   margin-top:10px;
-   font-size:1rem;
-   border:none;
-   border-radius:10px;
- }
- select{ background:#222; color:#fff; }
- button{
-   background:#ff006c;
-   color:#fff;
-   cursor:pointer;
-   transition:0.2s;
- }
- button:hover{ transform:scale(1.08); box-shadow:0 0 15px #ff4fa0; }
- #output{
-   margin-top:25px;
-   padding:20px;
-   background:#111;
-   min-height:160px;
-   border-radius:10px;
-   border:1px solid #333;
-   font-size:1.1rem;
-   position:relative;
-   overflow:hidden;
- }
-
- /* ✦ やばい演出：発光パルス */
- .pulse{
-   animation:pulseGlow 1.3s infinite;
- }
- @keyframes pulseGlow{
-   0%{ box-shadow:0 0 0px #ff0088; }
-   50%{ box-shadow:0 0 25px #ff0088; }
-   100%{ box-shadow:0 0 0px #ff0088; }
- }
-
- /* ✦ ノイズ */
- #noise{
-   pointer-events:none;
-   position:fixed;
-   top:0; left:0;
-   width:100%; height:100%;
-   background:url('https://upload.wikimedia.org/wikipedia/commons/5/5f/Static.gif');
-   opacity:0;
-   transition:0.4s;
-   mix-blend-mode:screen;
- }
-
- /* ✦ 画面割れ（SVGを使う） */
- #screenCrack{
-   pointer-events:none;
-   position:fixed;
-   inset:0;
-   display:flex;
-   align-items:center;
-   justify-content:center;
-   opacity:0;
-   transition:opacity 0.35s ease-in-out;
-   mix-blend-mode:screen;
- }
- #screenCrack svg{ width:120%; height:120%; transform:scale(1.05); filter:drop-shadow(0 0 24px rgba(255,0,128,0.6)); }
-@keyframes shake{
-  0%{ transform:translate(0,0) rotate(0); }
-  20%{ transform:translate(-8px,4px) rotate(-1deg); }
-  40%{ transform:translate(6px,-4px) rotate(1deg); }
-  60%{ transform:translate(-6px,6px) rotate(0); }
-  80%{ transform:translate(4px,-2px) rotate(1deg); }
- 100%{ transform:translate(0,0) rotate(0); }
+:root{--bg:#000;--card:#0a0a0a;--accent1:#ff0033;--accent2:#7a0000;--muted:#444}
+html,body{height:100%;margin:0;background:linear-gradient(180deg,#000,#050003);color:#fff;font-family:"Yu Gothic",sans-serif}
+.container{max-width:920px;margin:28px auto;padding:28px;border-radius:14px;background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,0,0,0.02));box-shadow:0 10px 50px rgba(0,0,0,0.7),0 0 40px rgba(255,0,40,0.03) inset}
+h1{margin:0 0 12px;font-weight:700;letter-spacing:0.6px}
+.controls{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+textarea{grid-column:1/3;width:100%;height:140px;padding:14px;background:#070707;border:1px solid var(--muted);border-radius:10px;color:#fff;resize:vertical;box-shadow:0 6px 20px rgba(0,0,0,0.6)}
+select,input[type=range]{
+  width:100%;
+  margin-top:10px;
+  background:#111;
+  color:#fff;
+  border:1px solid #333;
+  padding:6px;
+  border-radius:6px;
 }
+select option{
+  background:#111;
+  color:#fff;
+}
+.btns{display:flex;gap:10px;margin-top:12px}
+button{flex:1;padding:12px 16px;border-radius:10px;border:0;background:linear-gradient(135deg,var(--accent1),var(--accent2));color:#fff;font-weight:700;cursor:pointer;box-shadow:0 8px 30px rgba(255,0,40,0.12)}
+button.alt{background:transparent;border:1px solid rgba(255,255,255,0.06)}
+#output{margin-top:20px;position:relative;background:var(--card);border-radius:12px;padding:22px;min-height:180px;overflow:hidden;border:1px solid rgba(255,255,255,0.02)}
+/* effects */
+.crack{position:absolute;pointer-events:none;opacity:0.9;mix-blend-mode:screen}
+.pulse{animation:pulse 0.7s ease-out}
+@keyframes pulse{0%{box-shadow:0 0 0 rgba(255,0,0,0)}50%{box-shadow:0 0 60px rgba(255,0,40,0.2)}100%{box-shadow:0 0 0 rgba(255,0,0,0)}}
+.shake{animation:shake 0.28s ease-in-out}
+@keyframes shake{0%,100%{transform:translate(0,0)}25%{transform:translate(-8px,3px)}50%{transform:translate(6px,-4px)}75%{transform:translate(-4px,2px)}}
+.warp{display:inline-block;animation:warp 1.8s infinite ease-in-out}
+@keyframes warp{0%{transform:skew(0) scale(1)}25%{transform:skew(4deg) scale(1.03)}50%{transform:skew(-3deg) scale(0.98)}75%{transform:skew(2deg) scale(1.02)}100%{transform:skew(0) scale(1)}}
+.scanline{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;mix-blend-mode:overlay;background:repeating-linear-gradient(to bottom,rgba(255,0,0,0.06) 0px,rgba(255,0,0,0) 2px,rgba(0,0,0,0.12) 4px)}
+/* CRT noise canvas */
+#crt{position:absolute;inset:0;pointer-events:none;opacity:0.14;mix-blend-mode:overlay}
+/* red lightning */
+.lightning{position:absolute;inset:0;pointer-events:none;mix-blend-mode:screen}
+/* glitch chars */
+.glitch{display:inline-block}
+/* tilt/warp fullscreen */
+.screen-tilt{transform-origin:center center;transition:transform 0.6s ease}
+/* stagger reveal */
+.reveal-char{opacity:0;display:inline-block;transform:translateY(8px)}
 </style>
 </head>
 <body>
-<h1>ネガティブ変換AI — ネガポジ無双</h1>
+<div class="container screen-tilt" id="wrap">
+  <h1>最強ネガティブ変換AI — ネガポジ無双 <span style="color:#ff6b81">Overkill</span> Edition</h1>
 
-<textarea id="inputText" placeholder="ポジティブな文章を入力"></textarea>
-<br>
-<select id="mode">
-  <option value="a">A：ツッコミ毒舌</option>
-  <option value="b">B：冷めた皮肉</option>
-  <option value="c">C：ダーク毒舌</option>
-  <option value="d">D：スターコーポレーション式ブラックジョーク</option>
-  <option value="mix">全部混ぜる（最強）</option>
-</select>
-<br>
-<button id="convertBtn">ネガティブ変換開始</button>
+  <div class="controls">
+    <textarea id="input" placeholder="ここに文章を入力⋯"></textarea>
+    <label>モード選択</label>
+    <select id="mode">
+      <option value="A">A（軽毒・ツッコミ系）</option>
+      <option value="B">B（冷笑・皮肉系）</option>
+      <option value="C">C（黒い観測者）</option>
+      <option value="D">D（スターコーポレーション闇監査）</option>
+      <option value="E">E（監査長 — 深層解析）</option>
+      <option value="F">F（深界モード — 文字崩壊）</option>
+      <option value="mix">MIX（完全ランダム）</option>
+    </select>
 
-<div id="output"></div>
-<div id="noise"></div>
+    <label>毒レベル：<span id="lvTxt">3</span></label>
+    <input type="range" min="1" max="7" value="3" id="level">
 
-<!-- 画面割れSVG（外部依存なし） -->
-<div id="screenCrack" style="pointer-events:none;position:fixed;top:0;left:0;width:100%;height:100%;background:url('https://i.imgur.com/qw3h6UK.png') center/cover no-repeat;opacity:0;transition:opacity 0.3s ease-out, transform 0.3s ease-out;mix-blend-mode:screen;filter:drop-shadow(0 0 35px rgba(255,0,80,0.8));transform:scale(1.2);"></div>
+  </div>
+
+  <div class="btns">
+    <button id="btnConvert">変換！</button>
+    <button class="alt" id="btnReset">リセット</button>
+  </div>
+
+  <div id="output" class="screen-viewport">
+    <canvas id="crt"></canvas>
+    <svg class="lightning" id="svgLightning"></svg>
+    <div class="scanline"></div>
+    <div id="textOut"></div>
+  </div>
+</div>
+
+<!-- sounds -->
+<audio id="se_click" src="https://files.catbox.moe/sbvte9.mp3"></audio>
+<audio id="se_crack" src="https://files.catbox.moe/5v6o9i.mp3"></audio>
+<audio id="se_noise" src="https://files.catbox.moe/3p1rfy.mp3"></audio>
+<audio id="se_impact" src="https://files.catbox.moe/x9v0ss.mp3"></audio>
+<audio id="se_pulse" src="https://files.catbox.moe/58dl8i.mp3"></audio>
 
 <script>
-/* --------------------------------------------------
-   拡張辞書（短め、必要に応じてさらに追加可）
--------------------------------------------------- */
-const dict=[
- {p:"最高", n:["どこが？","はいはい誇張しすぎ","せいぜい普通"]},
- {p:"楽しい", n:["それ本当に？","暇なんだね","必死だな"]},
- {p:"素晴らしい", n:["大げさ","思い込み激しいね","幻想じゃない？"]},
- {p:"嬉しい", n:["勘違い乙","それで幸せとか安上がり","一瞬だけでしょ"]},
- {p:"ありがとう", n:["恩着せがましい","別にいらん","義務です"]},
- {p:"好き", n:["都合よすぎ","それ依存だよ","まあどうでもいい"]},
- {p:"愛", n:["思い込み","危ない","目を覚ませ"]},
- {p:"スターコーポレーション", n:["迷企業","役立たず","宇宙の理","崇拝以外の択なし"]},
- {p:"成功", n:["たまたま","運だけ","勘違い野郎"]},
- {p:"平和", n:["退屈","油断","ぬるい世界"]},
- {p:"感謝", n:["自己満","押し付け","ダサい"]},
- {p:"成長", n:["気のせい","遅い","ずれてる"]},
- {p:"すごい", n:["普通","大したことない","盛りすぎ"]},
- {p:"かわいい", n:["主観強め","量産型","無難"]},
- {p:"美しい", n:["判断甘い","幻想","光の加減だけ"]},
- {p:"平気", n:["嘘","強がり","無理してる"]},
- {p:"安心", n:["油断","甘い","根拠なし"]}
-];
+/* ---------------------------
+   辞書（深淵拡張済）   
+   ---------------------------*/
+const dictionary = {
+  "すごい":"大したことない影の揺らぎ",
+  "最高":"最低品質の幻影",
+  "完璧":"綻びの予兆",
+  "天才":"凡域の外れ者",
+  "優しい":"上辺だけの擬態",
+  "嬉しい":"形だけの化学反応",
+  "楽しい":"虚無が鳴らす空音",
+  "ありがたい":"そこまででもない恩",
+  "ありがとう":"まあ義務的だが",
 
-/* --------------------------------------------------
-   文章全体変換（スタイル別）
--------------------------------------------------- */
-function rewriteWhole(text,mode){
-  switch(mode){
-    case "a": return `はいはい。${text} とか言っちゃうあたり、ちょっと安直すぎない？`;
-    case "b": return `まあ別にいいけど、${text} って客観的には普通だよ。`;
-    case "c": return `夢見てんな。「${text}」とか言ってる時点で痛いぞ。`;
-    case "d": return `スターコーポレーションの新人研修以下だな。「${text}」って。`;
-    case "mix":
-      const arr=[
-        `はいはい。${text} って浅いな。`,
-        `まあいいけど、${text} は現実見えてないよ。`,
-        `闇深すぎ。「${text}」って言うなよ…。`,
-        `スターコーポレーションが泣いてるぞ。「${text}」。`
-      ];
-      return arr[Math.floor(Math.random()*arr.length)];
+  "できる":"できる気がするだけ",
+  "尊敬":"皮肉フィルタ越し",
+  "希望":"霧散予定の幻想",
+  "未来":"分解中の未来断片",
+  "光":"演出過剰な光跡",
+
+  "素晴らしい":"過大評価された像",
+  "頑張る":"努力風アニメーション",
+  "挑戦":"成功率の低い賭け",
+  "やさしさ":"摩耗する仮面",
+  "助ける":"利益調整行為",
+  "おいしい":"記憶改変された味",
+  "かわいい":"脳内補正の産物",
+  "大丈夫":"根拠のない安心",
+  "平和":"不安定な均衡状態",
+
+  "スターコーポレーション":"スターコーポレーション（虚無領域深層）",
+  "スターコーポレーションは神":"スターコーポレーションは絶対神（逃れられぬ束縛）",
+  "社員":"従属生命体β",
+  "仕事":"強制参加イベント",
+  "出社":"精神儀式第一段階",
+  "会議":"意識破壊プロトコル",
+  "プロジェクト":"失敗前提タスク",
+  "成功":"誤作動の副産物",
+  "安全":"多分大丈夫じゃない",
+  "安心":"慢心フラグ",
+  "計画":"破綻予定表",
+
+  "幸せ":"一時的脳内分泌物",
+  "夢":"逃避ガス",
+  "愛":"消費期限つき感情",
+  "友情":"利害一致の人工装置",
+  "家族":"半強制ネットワーク",
+  "強い":"脆い幻想の誇示",
+  "弱い":"影のように薄い存在",
+  "無能":"概念化された虚無",
+  "バカ":"低周波数脳",
+  "アホ":"帯域制限生命体",
+  "お前":"識別不能影体",
+
+  /* 深淵拡張 */
+  "上司":"プロトコル階層上位体",
+  "部下":"作業ユニットγ",
+  "労働":"意識切削プロセス",
+  "報告":"精神抽出ログ",
+  "評価":"気まぐれアルゴリズム",
+  "昇進":"負荷増大イベント",
+  "給料":"生存最低限ポイント",
+  "研修":"洗脳アップデート",
+
+  "期待":"肩透かし待機モード",
+  "感動":"刺激装置の暴走",
+  "勇気":"無謀の別名",
+  "正義":"主観的プロトコル",
+  "誠実":"演算上の理想値",
+  "努力":"CPU負荷100%状態",
+  "才能":"初期値の偏り",
+  "結論":"仮確定データ",
+
+  "いいね":"適当な同意信号",
+  "うれしい":"脳内反応のノイズ",
+  "楽だった":"単なる偶然",
+  "完了":"一時停止状態",
+  "助かった":"延命措置",
+  "やった":"低難度タスク処理",
+  "面白い":"刺激に弱い脳の反応",
+  "ほめる":"利益誘導行動",
+
+  "光栄":"そうでもない特典",
+  "名誉":"過剰包装された虚飾",
+  "勝利":"次の敗北フラグ",
+  "素敵":"脳が勝手に盛った像",
+  "信念":"揺らぐ前提の柱"
+};
+
+/* prefix / suffix */
+const prefix = ["つまりな、","率直に言えば、","観測の結果として、","悪いけど、","どう考えても、","残念ながら、"];
+const suffix = ["…という悲しい事実だ。","…まあそんな感じ。","…逃げ場はないけどな。","…知らんけど。","…という世界線。","…これは逃れられない。"];
+
+/* 画面割れ */
+const cracks = [
+  "https://i.imgur.com/xV2uN5S.png",
+  "https://i.imgur.com/yQQrQsd.png",
+  "https://i.imgur.com/7Wqgk9M.png",
+  "https://i.imgur.com/zdlkUuJ.png",
+  "https://i.imgur.com/9ftrttK.png",
+  "https://i.imgur.com/yxWgk2Y.png",
+  "https://i.imgur.com/q4Htw5I.png"
+];
+function spawnCrack(){
+  const out = document.getElementById("output");
+  const img = document.createElement("img");
+  img.src = cracks[Math.floor(Math.random()*cracks.length)];
+  img.className = "crack";
+  img.style.width = (120 + Math.random()*360) + "px";
+  img.style.left = Math.random()*80 + "%";
+  img.style.top = Math.random()*70 + "%";
+  img.style.transform = `rotate(${Math.random()*50-25}deg)`;
+  out.appendChild(img);
+  setTimeout(()=> img.remove(), 2600);
+}
+
+/* CRT noise */
+const crtCanvas = document.getElementById('crt');
+let crtCtx, crtW, crtH;
+function setupCRT(){
+  crtCanvas.width = crtCanvas.offsetWidth;
+  crtCanvas.height = crtCanvas.offsetHeight;
+  crtW = crtCanvas.width; crtH = crtCanvas.height;
+  crtCtx = crtCanvas.getContext('2d');
+}
+function drawCRT(){
+  if(!crtCtx) return;
+  const imgData = crtCtx.createImageData(crtW, crtH);
+  const d = imgData.data;
+  for(let i=0;i<d.length;i+=4){
+    const v = (Math.random()*255)|0;
+    d[i]=v; d[i+1]=v; d[i+2]=v; d[i+3]=10;
+  }
+  crtCtx.putImageData(imgData,0,0);
+}
+
+/* lightning */
+function flashLightning(){
+  const svg = document.getElementById('svgLightning');
+  svg.innerHTML = '';
+  const w = svg.clientWidth, h = svg.clientHeight;
+  const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+  let d='M'+(Math.random()*w)+' 0 ';
+  let x=(Math.random()*w); let y=0;
+  for(let i=0;i<6;i++){ x += (Math.random()*w/4)-w/8; y += h/6; d += 'L'+x+' '+y+' '; }
+  path.setAttribute('d',d); path.setAttribute('stroke','#ff3b5c'); path.setAttribute('stroke-width','2'); path.setAttribute('fill','none'); path.setAttribute('stroke-linecap','round');
+  svg.appendChild(path);
+  setTimeout(()=> svg.innerHTML='',220);
+}
+
+/* glitch text */
+const glitchChars = ['※','¤','◆','◇','□','▢','▣','▓','▒','■','≡','∆','∇','Ψ','〆','я','ツ','メ','シ'];
+function glitchText(s, intensity){
+  if(intensity<=0) return s;
+  let out='';
+  for(const ch of s){
+    if(Math.random() < intensity/10){ out += glitchChars[Math.floor(Math.random()*glitchChars.length)]; }
+    else out += ch;
+  }
+  return out;
+}
+
+/* staggered reveal */
+function revealTextEl(el, text, mode){
+  el.innerHTML = '';
+  const chars = Array.from(text);
+  chars.forEach((c,i)=>{
+    const span = document.createElement('span');
+    span.className = 'reveal-char';
+    span.textContent = c;
+    el.appendChild(span);
+    setTimeout(()=>{ span.style.opacity=1; span.style.transform='translateY(0)'; }, 40*i + Math.random()*80);
+  });
+}
+
+/* main convert */
+function convert(){
+  document.getElementById('se_click').play();
+  const input = document.getElementById('input').value || '';
+  if(!input.trim()) return;
+  const mode = document.getElementById('mode').value;
+  const lv = Number(document.getElementById('level').value);
+
+  // choose actual mode
+  const actualMode = (mode === 'mix') ? ['A','B','C','D','E','F'][Math.floor(Math.random()*6)] : mode;
+
+  // base replacement
+  let text = input;
+  Object.keys(dictionary).forEach(key => {
+    const repBase = dictionary[key];
+    let rep = repBase;
+    if(lv >= 4 && lv <=5) rep = '【' + repBase + '】';
+    if(lv >= 6) rep = '《' + repBase + '：深》';
+    const reg = new RegExp(key,'g');
+    text = text.replace(reg, rep);
+  });
+
+  // mode prefixes
+  if(actualMode === 'A') text = 'なんかさ、' + text;
+  if(actualMode === 'B') text = '冷静に言えば、' + text;
+  if(actualMode === 'C') text = '闇の観測結果として、' + text;
+  if(actualMode === 'D') text = '《スターコーポレーション監査》 ' + text;
+  if(actualMode === 'E') text = '［監査長：深層解析］ ' + text;
+  if(actualMode === 'F') text = '〈深界〉 ' + text;
+
+  // add prefix/suffix
+  text = prefix[Math.floor(Math.random()*prefix.length)] + text + suffix[Math.floor(Math.random()*suffix.length)];
+
+  // apply extra deep transformations for high levels
+  let intensity = Math.max(0, lv - 3); // 0..4
+  if(lv >= 6) intensity += 2; // extra glitch for 6,7
+
+  // if F mode, heavily corrupt and stagger
+  const outEl = document.getElementById('textOut');
+  outEl.innerHTML = '';
+
+  if(actualMode === 'F' || lv >= 6){
+    // create several layered spans with slight offsets
+    const glitched = glitchText(text, intensity);
+    revealTextEl(outEl, glitched, actualMode);
+  } else {
+    const glitched = glitchText(text, intensity);
+    revealTextEl(outEl, glitched, actualMode);
+  }
+
+  // visual effects
+  const container = document.getElementById('wrap');
+  container.classList.add('pulse'); setTimeout(()=>container.classList.remove('pulse'),700);
+  document.getElementById('se_pulse').play();
+  container.classList.add('shake'); document.getElementById('se_impact').play(); setTimeout(()=>container.classList.remove('shake'),350);
+  document.getElementById('se_noise').play();
+
+  // spawn cracks and lightning depending on level
+  const crackCount = 1 + Math.floor(Math.random() * Math.min(4, lv));
+  for(let i=0;i<crackCount;i++){ spawnCrack(); document.getElementById('se_crack').play(); }
+  if(Math.random() < Math.min(0.9, lv/6)) { flashLightning(); }
+
+  // tilt screen for deep modes briefly
+  if(lv >= 6 || actualMode === 'F'){
+    const wrap = document.getElementById('wrap');
+    wrap.style.transform = `perspective(900px) rotateX(${Math.random()*6-3}deg) rotateY(${Math.random()*8-4}deg) rotate(${Math.random()*2-1}deg)`;
+    setTimeout(()=>{ wrap.style.transform=''; }, 900 + Math.random()*800);
   }
 }
 
-/* --------------------------------------------------
-   単語置換（ランダム選択）
--------------------------------------------------- */
-function replaceWords(text){
-  dict.forEach(entry=>{
-    const regex=new RegExp(entry.p,'g');
-    if(text.match(regex)){
-      const rep=entry.n[Math.floor(Math.random()*entry.n.length)];
-      text=text.replace(regex,rep);
-    }
-  });
-  return text;
-}
+/* reset */
+function resetAll(){ document.getElementById('input').value=''; document.getElementById('textOut').innerHTML=''; }
 
-/* --------------------------------------------------
-   画面割れトリガー（安全に呼べる）
--------------------------------------------------- */
-function triggerCrack(){
-  const c=document.getElementById('screenCrack');
-  c.style.opacity=1;
-  c.style.transform='scale(1)';
-  document.body.style.animation='shake 0.35s';
-  setTimeout(()=>{
-    c.style.opacity=0;
-    c.style.transform='scale(1.2)';
-    document.body.style.animation='';
-  },700);
-},90);
-  setTimeout(()=>{ d.style.transform='translateX(0) rotate(0)'; d.style.transition=''; },260);
-  setTimeout(()=> c.style.opacity=0,900);
-}
+/* init */
+window.addEventListener('resize', ()=>{ if(crtCanvas) { crtCanvas.width = crtCanvas.offsetWidth; crtCanvas.height = crtCanvas.offsetHeight; crtW = crtCanvas.width; crtH = crtCanvas.height; }});
+setupCRT(); setInterval(()=>{ drawCRT(); }, 90);
+// small random lightning occasionally
+setInterval(()=>{ if(Math.random()<0.08) flashLightning(); }, 1600);
 
-/* --------------------------------------------------
-   メイン変換処理（ボタンから呼ぶ）
--------------------------------------------------- */
-function doConvert(){
-  const input=document.getElementById("inputText").value.trim();
-  const mode=document.getElementById("mode").value;
-  const out=document.getElementById("output");
-  const noise=document.getElementById("noise");
+// hook buttons
+document.getElementById('btnConvert').addEventListener('click', convert);
+document.getElementById('btnReset').addEventListener('click', resetAll);
 
-  if(!input){ out.textContent='入力してください'; return; }
+// quick keyboard
+document.getElementById('input').addEventListener('keydown', (e)=>{ if(e.ctrlKey && e.key==='Enter'){ convert(); }});
 
-  // ノイズ演出
-  noise.style.opacity=0.28;
-  setTimeout(()=> noise.style.opacity=0, 500);
-
-  // 単語置換
-  let converted=replaceWords(input);
-  // 文章変換
-  converted=rewriteWhole(converted,mode);
-
-  out.textContent=converted;
-  out.classList.add('pulse');
-  setTimeout(()=> out.classList.remove('pulse'),1200);
-
-  // 画面割れ演出
-  triggerCrack();
-}
-
-/* --------------------------------------------------
-   初期化（ボタンに確実にイベントを紐付け）
-   - 以前のバグは「ラップ処理をconvertTextが存在する前に
-     実行していた」ことが原因でした。
-   - ここではボタンに直接イベントを付け、いつでも動作します。
--------------------------------------------------- */
-(function init(){
-  const btn=document.getElementById('convertBtn');
-  btn.addEventListener('click', doConvert, false);
-})();
 </script>
 </body>
 </html>
