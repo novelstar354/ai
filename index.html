@@ -1,639 +1,314 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8" />
-<title>最強ネガティブ変換AI - ネガポジ無双 Overkill Edition</title>
+<meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>ステイホームツアーズ — 旅行をやめて幸せに帰ろう（完全版）</title>
 <style>
- footer {
-   padding: 30px;
-   text-align: center;
-   font-size: 0.85rem;
-   color: rgba(255,255,255,0.5);
-   border-top: 1px solid rgba(255,255,255,0.1);
-   margin-top: 60px;
- }
+/* RESET */
+*{margin:0;padding:0;box-sizing:border-box;font-family:"Noto Sans JP",sans-serif;}
+body{background:#0b0b0b;color:white;overflow-x:hidden;}
+.wrapper{max-width:1200px;margin:0 auto;padding:0 20px;width:100%;}
 
-:root{--bg:#000;--card:#0a0a0a;--accent1:#ff0033;--accent2:#7a0000;--muted:#444}
-html,body{height:100%;margin:0;background:linear-gradient(180deg,#000,#050003);color:#fff;font-family:"Yu Gothic",sans-serif}
-.container{max-width:920px;margin:28px auto;padding:28px;border-radius:14px;background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,0,0,0.02));box-shadow:0 10px 50px rgba(0,0,0,0.7),0 0 40px rgba(255,0,40,0.03) inset}
-h1{margin:0 0 12px;font-weight:700;letter-spacing:0.6px}
-.controls{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-textarea{grid-column:1/3;width:100%;height:140px;padding:14px;background:#070707;border:1px solid var(--muted);border-radius:10px;color:#fff;resize:vertical;box-shadow:0 6px 20px rgba(0,0,0,0.6)}
-select,input[type=range]{
-  width:100%;
-  margin-top:10px;
-  background:#111;
-  color:#fff;
-  border:1px solid #333;
-  padding:6px;
-  border-radius:6px;
+/* HERO */
+.hero{text-align:center;padding:80px 0 60px;}
+.hero h1{font-size:2.4rem;font-weight:700;margin-bottom:20px;}
+.hero p{font-size:1.2rem;opacity:0.8;}
+
+/* 赤警告ボタン */
+#alertToggle{margin-top:25px;padding:15px 35px;font-size:1.2rem;border:none;border-radius:50px;background:red;color:white;cursor:pointer;animation:glow 2s infinite;box-shadow:0 0 20px red;}
+@keyframes glow{0%{box-shadow:0 0 8px red;}50%{box-shadow:0 0 20px red;}100%{box-shadow:0 0 8px red;}}
+
+/* 赤警告モード */
+.red-alert{background:#2b0000!important;}
+.red-alert *{color:#ffb8b8!important;}
+.red-alert .pulsing{animation:pulse .6s infinite;}
+@keyframes pulse{0%{transform:scale(1);}50%{transform:scale(1.03);}100%{transform:scale(1);}}
+
+/* PLANS */
+.plans{margin-top:60px;}
+.plans h2{text-align:center;font-size:1.9rem;margin-bottom:25px;}
+.plan-list{display:grid;grid-template-columns:1fr;gap:25px;}
+@media(min-width:800px){.plan-list{grid-template-columns:repeat(3,1fr);}}
+.plan-card{background:#131313;border-radius:15px;padding:20px;box-shadow:0 0 15px rgba(255,255,255,0.07);text-align:center;transition:.3s;position:relative;}
+.plan-card:hover{transform:translateY(-5px);box-shadow:0 0 25px rgba(255,255,255,0.12);} 
+.plan-card img{width:100%;height:170px;object-fit:cover;border-radius:12px;margin-bottom:15px;}
+.plan-card .price{font-size:1.5rem;margin:12px 0;color:#ffd166;}
+.favorite-btn{position:absolute;top:10px;right:10px;font-size:1.6rem;cursor:pointer; opacity:0.8;}
+.favorite-btn.active{color:#ff4d4d;opacity:1;}
+
+/* お気に入りページ */
+#favoritePage{display:none;padding:50px 0;}
+#favoritePage h2{text-align:center;margin-bottom:20px;}
+#favoriteList{display:grid;grid-template-columns:1fr;gap:20px;}
+@media(min-width:800px){#favoriteList{grid-template-columns:repeat(3,1fr);}}
+
+/* FORM */
+.form-section{margin-top:70px;}
+form{display:flex;flex-direction:column;gap:18px;margin-top:20px;}
+input,select,textarea{padding:12px 15px;border:none;border-radius:10px;background:#222;color:white;font-size:1rem;}
+button.submitBtn{padding:15px;background:#00b7ff;border:none;border-radius:10px;color:black;font-size:1.2rem;cursor:pointer;transition:.2s;}
+button.submitBtn:hover{background:#4dd6ff;}
+
+/* 送信アニメーション */
+.progress-container{width:100%;background:#333;height:12px;border-radius:10px;margin-top:10px;overflow:hidden;display:none;}
+.progress-bar{height:100%;width:0%;background:#00b7ff;transition:0.2s;}
+
+/* エラー画面 */
+#errorBox{display:none;margin-top:25px;padding:20px;background:#400;border-left:6px solid red;border-radius:10px;}
+
+footer{margin:80px 0 40px;text-align:center;opacity:0.6;}
+
+.glow-btn{animation:glowbtn 1.8s infinite;box-shadow:0 0 10px #fff;}@keyframes glowbtn{0%{box-shadow:0 0 6px #fff;}50%{box-shadow:0 0 18px #fff;}100%{box-shadow:0 0 6px #fff;}}
+.red-alert .glow-btn{animation:redglow 1.2s infinite;box-shadow:0 0 12px red !important;}@keyframes redglow{0%{box-shadow:0 0 6px red;}50%{box-shadow:0 0 22px red;}100%{box-shadow:0 0 6px red;}}
+/* ---- 全ボタン共通のかっこいいデザイン ---- */
+button, .glow-btn, #alertToggle, .submitBtn{
+  border:none;
+  border-radius:14px;
+  padding:14px 28px;
+  font-size:1.1rem;
+  font-weight:600;
+  cursor:pointer;
+  background:linear-gradient(135deg,#1e1e1e,#2c2c2c);
+  color:white;
+  letter-spacing:0.5px;
+  transition:0.25s ease;
+  box-shadow:0 0 10px rgba(255,255,255,0.25);
+  animation:allglow 2.2s infinite;
 }
-select option{ background:#111; color:#fff; }
-.btns{display:flex;gap:10px;margin-top:12px}
-button{flex:1;padding:12px 16px;border-radius:10px;border:0;background:linear-gradient(135deg,var(--accent1),var(--accent2));color:#fff;font-weight:700;cursor:pointer;box-shadow:0 8px 30px rgba(255,0,40,0.12)}
-button.alt{background:transparent;border:1px solid rgba(255,255,255,0.06)}
-#output{margin-top:20px;position:relative;background:var(--card);border-radius:12px;padding:22px;min-height:180px;overflow:hidden;border:1px solid rgba(255,255,255,0.02)}
-.crack{position:absolute;pointer-events:none;opacity:0.95;mix-blend-mode:screen}
-.pulse{animation:pulse 0.7s ease-out}
-@keyframes pulse{0%{box-shadow:0 0 0 rgba(255,0,0,0)}50%{box-shadow:0 0 60px rgba(255,0,40,0.2)}100%{box-shadow:0 0 0 rgba(255,0,0,0)}}
-.shake{animation:shake 0.28s ease-in-out}
-@keyframes shake{0%,100%{transform:translate(0,0)}25%{transform:translate(-8px,3px)}50%{transform:translate(6px,-4px)}75%{transform:translate(-4px,2px)}}
-.warp{display:inline-block;animation:warp 1.8s infinite ease-in-out}
-@keyframes warp{0%{transform:skew(0) scale(1)}25%{transform:skew(4deg) scale(1.03)}50%{transform:skew(-3deg) scale(0.98)}75%{transform:skew(2deg) scale(1.02)}100%{transform:skew(0) scale(1)}}
-.scanline{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;mix-blend-mode:overlay;background:repeating-linear-gradient(to bottom,rgba(255,0,0,0.06) 0px,rgba(255,0,0,0) 2px,rgba(0,0,0,0.12) 4px)}
-#crt{position:absolute;inset:0;pointer-events:none;opacity:0.14;mix-blend-mode:overlay}
-.lightning{position:absolute;inset:0;pointer-events:none;mix-blend-mode:screen}
-.glitch{display:inline-block}
-.screen-tilt{transform-origin:center center;transition:transform 0.6s ease}
-.reveal-char{opacity:0;display:inline-block;transform:translateY(8px);transition:all 260ms ease}
-#fogLayer{position:fixed;inset:0;pointer-events:none;mix-blend-mode:multiply;opacity:0;transition:opacity 600ms ease}
-#fogLayer1,#fogLayer2,#fogLayer3{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;background:radial-gradient(circle at 50% 50%, rgba(0,0,0,0.35), rgba(0,0,0,0) 70%);filter:blur(35px);opacity:0.35;mix-blend-mode:multiply}
-#fogLayer2{opacity:0.45;filter:blur(45px)}
-#fogLayer3{opacity:0.55;filter:blur(55px)}
-@keyframes fogMove1{0%{transform:translate(0,0) scale(1);}25%{transform:translate(-20px,15px) scale(1.04);}50%{transform:translate(15px,-10px) scale(1.02);}75%{transform:translate(-10px,-20px) scale(1.05);}100%{transform:translate(0,0) scale(1);}}
-@keyframes fogMove2{0%{transform:translate(0,0) scale(1);}25%{transform:translate(25px,-10px) scale(1.06);}50%{transform:translate(-30px,20px) scale(1.04);}75%{transform:translate(10px,-25px) scale(1.07);}100%{transform:translate(0,0) scale(1);}}
-@keyframes fogMove3{0%{transform:translate(0,0) scale(1);}25%{transform:translate(-35px,-25px) scale(1.08);}50%{transform:translate(40px,20px) scale(1.05);}75%{transform:translate(-20px,30px) scale(1.1);}100%{transform:translate(0,0) scale(1);}}
-#fogLayer1{animation:fogMove1 12s infinite ease-in-out}
-#fogLayer2{animation:fogMove2 18s infinite ease-in-out}
-#fogLayer3{animation:fogMove3 26s infinite ease-in-out}
+button:hover{
+  transform:translateY(-3px) scale(1.03);
+  box-shadow:0 0 18px rgba(255,255,255,0.45);
+}
+@keyframes allglow{
+  0%{ box-shadow:0 0 6px rgba(255,255,255,0.35); }
+  50%{ box-shadow:0 0 22px rgba(255,255,255,0.7); }
+  100%{ box-shadow:0 0 6px rgba(255,255,255,0.35); }
+}
 
-.fall-piece{position:fixed;top:-20px;width:12px;height:12px;background:rgba(255,255,255,0.6);backdrop-filter:blur(2px);border-radius:2px;animation:fall-down linear forwards;box-shadow:2px 0 4px rgba(255,0,0,0.6),-2px 0 4px rgba(0,200,255,0.6)}
-@keyframes fall-down{0%{transform:translateY(0) rotate(0deg);}100%{transform:translateY(110vh) rotate(360deg);}}
-/* responsive tweaks */
-@media (max-width:720px){
-  .controls{grid-template-columns:1fr; gap:10px}
-  textarea{height:120px}
+/* ---- 赤警告モード時の赤い発光 ---- */
+.red-alert button,
+.red-alert .glow-btn,
+.red-alert #alertToggle,
+.red-alert .submitBtn{
+  background:linear-gradient(135deg,#4d0000,#7a0000) !important;
+  animation:redallglow 1.4s infinite !important;
+  box-shadow:0 0 14px red !important;
+}
+@keyframes redallglow{
+  0%{ box-shadow:0 0 8px rgba(255,0,0,0.5); }
+  50%{ box-shadow:0 0 26px rgba(255,0,0,1); }
+  100%{ box-shadow:0 0 8px rgba(255,0,0,0.5); }
+}
+/* 衝撃波エフェクト */
+.button, .glow-btn, button {
+  position: relative;
+  overflow: hidden;
+}
+.button:active::after,
+.glow-btn:active::after,
+button:active::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  background: rgba(255,255,255,0.6);
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(1);
+  animation: shockwave 0.6s ease-out;
+}
+@keyframes shockwave {
+  0% { opacity: 0.8; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(18); }
 }
 </style>
 </head>
 <body>
-<div class="container screen-tilt" id="wrap">
-  <h1>最強ネガティブ変換AI — ネガポジ無双 <span style="color:#ff6b81">Overkill</span> Edition</h1>
+<div class="wrapper">
 
-  <div class="controls">
-    <textarea id="input" placeholder="ここに文章を入力…"></textarea>
-    <label>モード選択</label>
-    <select id="mode">
-      <option value="A">A（軽毒・ツッコミ系）</option>
-      <option value="B">B（冷笑・皮肉系）</option>
-      <option value="C">C（黒い観測者）</option>
-      <option value="D">D（スターコーポレーション闇監査）</option>
-      <option value="E">E（監査長 — 深層解析）</option>
-      <option value="F">F（深界モード — 文字崩壊）</option>
-      <option value="mix">MIX（完全ランダム）</option>
+<section class="hero pulsing">
+  <h1>ステイホームツアーズ</h1>
+  <p>旅行しないという最高の贅沢。あなたの家が、今日から世界最高の観光地に。</p>
+  <button id="alertToggle">🔴 赤警告モード</button>
+  <br>
+  <button id="goFavorite" style="margin-top:20px;padding:10px 25px;font-size:1rem;border-radius:10px;border:none;cursor:pointer;background:#ffaa00;color:black;">⭐ お気に入りを見る</button>
+  <a href="#" id="backToMain" class="glow-btn" style="display:inline-block;margin-bottom:20px;padding:10px 20px;background:#444;border-radius:10px;color:white;text-decoration:none;">← 元のページへ戻る</a>
+</section>
+
+<section class="plans" id="planSection">
+  <h2>おすすめ在宅プラン（計 12 プラン）</h2>
+  <div class="plan-list" id="planList"></div>
+</section>
+
+<section id="favoritePage">
+  <h2>お気に入り一覧</h2>
+  <div id="favoriteList"></div>
+</section>
+
+<section class="form-section">
+  <h2>予約フォーム</h2>
+
+  <form id="reserveForm">
+    <input type="text" name="name" placeholder="名前" required>
+    <input type="email" name="email" placeholder="メールアドレス" required>
+    <input type="text" name="tel" placeholder="電話番号（任意）">
+    <input type="text" name="place" placeholder="行きたい場所（家の中でもOK）" required>
+
+    <select name="level" required>
+      <option value="">行きたい度</option>
+      <option value="0">0（行かない）</option>
+      <option value="1">1（まあ行かない）</option>
+      <option value="2">2（やっぱ行かない）</option>
+      <option value="3">3（絶対行かない）</option>
     </select>
 
-    <label>毒レベル：<span id="lvTxt">3</span></label>
-    <input type="range" min="1" max="7" value="3" id="level">
+    <button class="submitBtn" type="submit">送信</button>
+  </form>
+
+  <div class="progress-container" id="progressArea">
+    <div class="progress-bar" id="progressBar"></div>
   </div>
 
-  <div class="btns">
-    <button id="btnConvert">変換！</button>
-    <button class="alt" id="btnReset">リセット</button>
-  </div>
+  <div id="errorBox"></div>
 
-  <div id="output" class="screen-viewport">
-    <canvas id="crt"></canvas>
-    <svg class="lightning" id="svgLightning"></svg>
-    <div class="scanline"></div>
-    <div id="textOut"></div>
-  </div>
+</section>
+
+<footer>© 2025 StayHomeTours</footer>
 </div>
-
-<!-- fog layers -->
-<div id="fogLayer" aria-hidden="true">
-  <div id="fogLayer1"></div>
-  <div id="fogLayer2"></div>
-  <div id="fogLayer3"></div>
-</div>
-
-<!-- sounds (external mp3s) -->
-<audio id="se_click" src="https://files.catbox.moe/sbvte9.mp3" preload="auto"></audio>
-<audio id="se_crack" src="https://files.catbox.moe/5v6o9i.mp3" preload="auto"></audio>
-<audio id="se_noise" src="https://files.catbox.moe/3p1rfy.mp3" preload="auto"></audio>
-<audio id="se_impact" src="https://files.catbox.moe/x9v0ss.mp3" preload="auto"></audio>
-<audio id="se_pulse" src="https://files.catbox.moe/58dl8i.mp3" preload="auto"></audio>
-
-<footer>© 2025 STAR CORPORATION - All Rights Reserved.</footer>
 
 <script>
-/* ==================================================
-   Overkill Edition — 完全版 JS
-   （エラー修正 / 自動生成で辞書・返答パターンを300個に拡張）
-   ================================================== */
+/* 赤警告モード */
+const alertBtn=document.getElementById("alertToggle");
+alertBtn.addEventListener("click",()=>{
+  document.body.classList.toggle("red-alert");
+  alertBtn.textContent=document.body.classList.contains("red-alert")?"🔴 赤警告モード解除":"🔴 赤警告モード";
+});
 
-/* ---------------------------
-   基本辞書（有意義な先頭項目群）
-   --------------------------- */
-const dictionary = {
-  "達成":"ただの通過点の錯覚",
-  "最強":"話にならないほど弱い",
-  "素晴らしい":"ひどい",
-  "強い":"最弱",
-  "かわいい":"脳内補正の産物",
-  "かっこいい":"脳内補正の産物",
-  "安息":"停滞の別名",
-  "粉バナナ":"固形林檎",
-  "前進":"後退",
-  "新世界":"空想の虚無空間",
-  "最高":"平均点未満",
-  "神":"ゴミ",  
-  "大切":"どうでもいい",
-  "成長":"停滞",
-  "学び":"無駄",
-  "革新":"混乱の新種",
-  "光明":"一瞬だけの照度上昇",
-  "平穏":"不気味な静まり返り",
-  "誠意":"形式的プロトコル",
-  "祝福":"曖昧な肯定演算",
-  "慈愛":"感情演算の揺らぎ",
-  "明瞭":"単なる気のせい",
-  "決意":"破滅フラグの点灯",
-  "団結":"沈没船の共同作業",
-  "起源":"不明瞭な開始点",
-  "栄光":"一時的な照明効果",
-  "使命":"押し付けられた責務",
-  "治癒":"時間経過の誤認",
-  "浄化":"気分的リセット",
-  "進化":"仕様変更の副作用",
-  "守護":"不安の裏返し",
-  "恩恵":"確率的偏り",
-  "協調":"妥協アルゴリズム",
-  "安価":"品質低下の証明",
-  "高級":"虚飾コスト",
-  "強運":"短期的バグ",
-  "快挙":"他人の期待値不足",
-  "光沢":"表面だけの騙し",
-  "魅力":"錯覚誘導値",
-  "超越":"理解放棄の結果",
-  "無敵":"慢心発動状態",
-  "平穏無事":"ただの静電気的安定",
-  "純真":"情報不足の状態",
-  "清潔":"錯覚的に綺麗",
-  "栄誉":"一時的ラベル付与",
-  "総合力":"曖昧な計測値",
-  "完成":"未完了の見せかけ",
-  "進歩":"誤差の累積",
-  "上達":"慣れただけ",
-  "繁栄":"負荷増大の前兆",
-  "貢献":"微積分不可の微量",
-  "治安":"監視強度の指標",
-  "独創":"奇妙な偏差値",
-  "発見":"既知の再発見",
-  "努力家":"処理落ち気味の存在",
-  "慈悲深い":"感情演算甘め",
-  "奔放":"制御不足",
-  "柔軟":"一貫性欠如",
-  "繊細":"誤差に弱い構造",
-  "前向き":"現実逃避アルゴリズム",
-  "建設的":"破壊の回避策",
-  "一八":"カス",
-  "健康":"一時的安定プロセス",
-  "安全":"信頼度の低い仮定",
-  "幸せ":"化学反応の短期上昇",
-  "輝かしい":"照度補正の過剰",
-  "社交的":"エネルギー浪費型",
-  "平等":"検証不能な理想",
-  "豊富":"無駄の多さ",
-  "精力的":"エネルギー散財",
-  "偉大":"主観的巨大化",
-  "有名":"話題性の副産物",
-  "親切":"リソース微量消費",
-  "豊か":"測定不能の概念",
-  "上質":"過度な期待値",
-  "華麗":"光量の暴力",
-  "純白":"染まっていないだけ",
-  "軽快":"軽率の近縁",
-  "大胆":"無謀の親戚",
-  "清新":"情報不足の鮮度",
-  "刺激的":"疲労の原因",
-  "傑作":"偶然の産物",
-  "崇高":"曖昧な高度感",
-  "貴重":"希少性マジック",
-  "理想":"未達成前提の幻想",
-  "真実":"観測者依存の値",
-  "安楽":"退化の兆し",
-  "希望":"誤差範囲内の期待",
-  "努力":"リソース吸収プロセス",
-  "友情":"条件付き接続",
-  "愛情":"誤差逆転の錯覚",
-  "誠実":"検査合格率の一部",
-  "成功":"偶発的な副産物",
-  "未来":"定義されない変数",
-  "過去":"変形されたログ",
-  "現在":"瞬時に過去になる",
-  "改善":"パッチ的処置",
-  "挑戦":"負荷テストの代償",
-  "自由":"責任回避の表現",
-  "計画":"破綻予告"
-};
+/* プラン生成 12個 */
+const planData=[
+  {title:"引きこもり満喫パック",price:"¥1,980",img:"https://images.unsplash.com/photo-1519710164239-da123dc03ef4",desc:"究極の静寂を味わえる。"},
+  {title:"布団縛りツアー",price:"¥980",img:"https://www.xyl.jp/img/products/bed_s_headboard/top_sp.jpg",desc:"布団から出ない旅行。"},
+  {title:"スマホ世界一周プラン",price:"¥2,480",img:"https://images.unsplash.com/photo-1504384308090-c894fdcc538d",desc:"世界の景色は親指が決める。"},
+  {title:"Netflix耐久旅",price:"¥1,500",img:"https://images.unsplash.com/photo-1524985069026-dd778a71c7b4",desc:"12時間視聴で脳内世界旅行。"},
+  {title:"自室秘境トレッキング",price:"¥1,100",img:"https://images.unsplash.com/photo-1500530855697-b586d89ba3ee",desc:"部屋の隅を未踏の大地に。"},
+  {title:"ベッド沈没リゾート",price:"¥2,000",img:"https://images.unsplash.com/photo-1520880867055-1e30d1cb001c",desc:"ベッドで沈む贅沢。"},
+  {title:"無音瞑想ステイ",price:"¥980",img:"https://images.unsplash.com/photo-1503676260728-1c00da094a0b",desc:"雑音ゼロの心旅。"},
+  {title:"カーテン大陸探検",price:"¥750",img:"https://images.unsplash.com/photo-1469474968028-56623f02e42e",desc:"光と影の世界。"},
+  {title:"深夜テンション海外旅",price:"¥1,600",img:"https://www.nightview.info/photo/spot/0261/0261_04_main.jpg",desc:"夜の妄想で世界横断。"},
+  {title:"家電サファリツアー",price:"¥1,300",img:"https://images.unsplash.com/photo-1481277542470-605612bd2d61",desc:"家電を動物に見立てて冒険。"},
+  {title:"ゴロゴロ温泉ごっこ",price:"¥900",img:"https://images.unsplash.com/photo-1519824145371-296894a0daa9",desc:"布団の中で温泉気分。"},
+  {title:"幻のバーチャル外国語旅",price:"¥2,800",img:"https://images.unsplash.com/photo-1453928582365-b6ad33cbcf64",desc:"外国語アプリで無限旅行。"},
+];
 
-/* ---------------------------
-   辞書を300語に拡張（自動生成）
-   --------------------------- */
-(function expandDictionaryTo300(){
-  const baseKeys = Object.keys(dictionary);
-  let idx = 1;
-  while(Object.keys(dictionary).length < 300){
-    const key = `語彙${idx}`;
-    if(!dictionary[key]){
-      dictionary[key] = `未定義のネガ表現#${idx}`;
+const planList=document.getElementById("planList");
+const favoriteList=document.getElementById("favoriteList");
+let favorites=[];
+
+function renderPlans(){
+  planList.innerHTML="";
+  planData.forEach((p,i)=>{
+    const card=document.createElement("div");
+    card.className="plan-card";
+    card.innerHTML=`
+      <span class="favorite-btn" data-id="${i}">⭐</span>
+      <img src="${p.img}">
+      <h3>${p.title}</h3>
+      <div class="price">${p.price}</div>
+      <p>${p.desc}</p>
+    `;
+    planList.appendChild(card);
+  });
+}
+
+renderPlans();
+
+/* お気に入り機能 */
+document.addEventListener("click",e=>{
+  if(e.target.classList.contains("favorite-btn")){
+    const id=e.target.dataset.id;
+    if(!favorites.includes(id)){favorites.push(id);e.target.classList.add("active");}
+    else{favorites=favorites.filter(f=>f!==id);e.target.classList.remove("active");}
+  }
+});
+
+document.getElementById("goFavorite").addEventListener("click",()=>{
+  document.getElementById("planSection").style.display="none";
+  document.getElementById("favoritePage").style.display="block";
+  renderFavorites();
+});
+
+function renderFavorites(){
+  favoriteList.innerHTML="";
+  favorites.forEach(id=>{
+    const p=planData[id];
+    const c=document.createElement("div");
+    c.className="plan-card";
+    c.innerHTML=`<img src="${p.img}"><h3>${p.title}</h3><div class="price">${p.price}</div><p>${p.desc}</p>`;
+    favoriteList.appendChild(c);
+  });
+}
+
+/* 予約フォーム */
+const form=document.getElementById("reserveForm");
+const progressArea=document.getElementById("progressArea");
+const bar=document.getElementById("progressBar");
+const errorBox=document.getElementById("errorBox");
+
+const errorReasons=[
+  "サーバーが寝落ちしました。",
+  "通信ケーブルが布団に包まれています。",
+  "送信ボタンが押されたことに気づいていません。",
+  "データが迷子になりました。",
+  "AIが散歩に行きました。",
+  "パケットが渋滞中です。",
+  "送信者の気配を感じ取れません。",
+  "回線がスヤスヤしています。",
+  "電波がコタツに引きこもりました。",
+  "処理担当がコーヒー休憩中です。",
+  "世界線がズレました。",
+  "データが寝返りを打ち損ねました。"
+];
+
+form.addEventListener("submit",e=>{
+  e.preventDefault();
+  errorBox.style.display="none";
+  progressArea.style.display="block";
+  bar.style.width="0%";
+
+  let p=0;
+  const timer=setInterval(()=>{
+    p+=5;
+    bar.style.width=p+"%";
+
+    if(p===35){
+      clearInterval(timer);
+      const reason=errorReasons[Math.floor(Math.random()*errorReasons.length)];
+      errorBox.textContent="⚠ エラー: "+reason;
+      errorBox.style.display="block";
+      if(document.body.classList.contains("red-alert")){
+        errorBox.style.boxShadow="0 0 20px red";
+      }
     }
-    idx++;
-    // safety break (shouldn't be needed)
-    if(idx > 5000) break;
-  }
-})();
 
-/* ---------------------------
-   prefix（接頭句）と suffix（接尾句）
-   --------------------------- */
-const prefixes = [
-  "つまりな、",
-  "率直に言うとだ、",
-  "観測した結果として、",
-  "悪いが現実はな、",
-  "どう見積もっても、",
-  "残念ながら、",
-  "深層解析によれば、",
-  "データを読む限り、",
-  "モデル推定ではな、",
-  "圧倒的事実として、",
-  "ログを照合した結果、",
-  "量子ゆらぎ的には、",
-  "黒域担当の私見だが、",
-  "構造欠陥から判断すると、",
-  "無慈悲に言うが、",
-  "統計的に言って、",
-  "AI監査部としてはな、"
-];
-
-const suffixes = [
-  " — 以上、観測終了。",
-  "（期待するな）",
-  "。それが真実だ。",
-  " — 参考情報なし。",
-  "（追記：改善無し）",
-  "。工程ミスの証拠。",
-  "（注：割引無し）",
-  " — 再テスト推奨。",
-  "（要するに、詰んでいる）",
-  "。後は知るか。"
-];
-
-/* ---------------------------
-   返答パターン（先頭いくつか）＋自動で300まで拡張
-   --------------------------- */
-let responsePatterns = [
-  "001: 世界は今日も期待を裏切らない暗さだな…",
-  "002: 光？あれは演算上のバグだよ。",
-  "003: 希望を持つほど落差がひどくなる設計だ。",
-  "004: 優しさはだいたい条件付きだ。",
-  "005: 未来は未定義のまま放置されている。",
-  "006: 成功は偶然、失敗は仕様。",
-  "007: 愛は錯覚、執着はバグだ。",
-  "008: 前向きになると処理落ちするぞ。",
-  "009: 今日も絶望が安定稼働している。",
-  "010: 平和は読み込み画面にすぎない。",
-  "011: 努力は大体徒労だ。",
-  "012: 勝利は一時的、敗北は恒久的。",
-  "013: 安心とは慢心バフのことだ。",
-  "014: 幸福はすぐに期限切れになる。",
-  "015: チャンスは読み込み失敗率が高い。",
-  "016: 結局どこへ行っても絶望は先回りしている。",
-  "017: 判断ミスは人生の主要コンテンツ。",
-  "018: 信頼は薄氷。",
-  "019: 期待してもしなくても裏切られる。",
-  "020: 現実は常に斜め下へ。",
-  "021: 運命は初期不良のまま出荷されている。",
-  "022: 喜びは軽量、後悔は重量級。",
-  "023: 努力が報われる確率は宝くじ並み。",
-  "024: 救いを求めれば沈むだけ。",
-  "025: 幸せを掴んだと思ったら夢だった。",
-  "026: 前向きはただの無防備。",
-  "027: 協力は負担の押し付け合いだ。",
-  "028: 情熱はすぐ熱暴走する。",
-  "029: 約束は破られるためにある。",
-  "030: 安定は揺らぎの一形態。"
-];
-
-// 自動で 300 個に拡張（ユニークな番号を付与）
-(function expandResponsesTo300(){
-  let n = 31;
-  while(responsePatterns.length < 300){
-    const id = String(n).padStart(3,'0');
-    responsePatterns.push(`${id}: 深淵解析の結果、今日も明日も状況は改善しない。`);
-    n++;
-    if(n > 9999) break;
-  }
-})();
-
-/* ---------------------------
-   画面割れ画像配列（例：外部URL）
-   ※ 実際に動かすときは画像が存在するURLに差し替えてください。
-   --------------------------- */
-const cracks = [
-  "https://i.imgur.com/xV2uN5S.png",
-  "https://i.imgur.com/yQQrQsd.png",
-  "https://i.imgur.com/7Wqgk9M.png",
-  "https://i.imgur.com/Spweb01.png",
-  "https://i.imgur.com/Spweb02.png",
-  "https://i.imgur.com/Blast01.png",
-  "https://i.imgur.com/Blast02.png",
-  "https://i.imgur.com/Blast03.png",
-  "https://i.imgur.com/Fine01.png",
-  "https://i.imgur.com/Fine02.png",
-  "https://i.imgur.com/Fine03.png",
-  "https://i.imgur.com/Fine04.png",
-  "https://i.imgur.com/DarkCrack01.png",
-  "https://i.imgur.com/DarkCrack02.png",
-  "https://i.imgur.com/DarkCrack03.png",
-  "https://i.imgur.com/Shatter01.png",
-  "https://i.imgur.com/Shatter02.png",
-  "https://i.imgur.com/Shatter03.png"
-];
-
-/* ---------------------------
-   CRT ノイズセットアップ
-   --------------------------- */
-const crtCanvas = document.getElementById('crt');
-let crtCtx, crtW, crtH;
-function setupCRT(){
-  crtCanvas.width = crtCanvas.offsetWidth;
-  crtCanvas.height = crtCanvas.offsetHeight;
-  crtW = crtCanvas.width; crtH = crtCanvas.height;
-  crtCtx = crtCanvas.getContext('2d');
-}
-function drawCRT(){
-  if(!crtCtx) return;
-  const imgData = crtCtx.createImageData(crtW, crtH);
-  const d = imgData.data;
-  for(let i=0;i<d.length;i+=4){
-    const v = (Math.random()*255)|0;
-    d[i]=v; d[i+1]=v; d[i+2]=v; d[i+3]=10;
-  }
-  crtCtx.putImageData(imgData,0,0);
-}
-
-/* ---------------------------
-   ライトニング（SVG path）
-   --------------------------- */
-function flashLightning(){
-  const svg = document.getElementById('svgLightning');
-  svg.innerHTML = '';
-  const w = svg.clientWidth || window.innerWidth;
-  const h = svg.clientHeight || window.innerHeight;
-  const path = document.createElementNS('http://www.w3.org/2000/svg','path');
-  let d='M'+(Math.random()*w)+' 0 ';
-  let x=(Math.random()*w); let y=0;
-  for(let i=0;i<6;i++){ x += (Math.random()*w/4)-w/8; y += h/6; d += 'L'+x+' '+y+' '; }
-  path.setAttribute('d',d); path.setAttribute('stroke','#ff3b5c'); path.setAttribute('stroke-width','2'); path.setAttribute('fill','none'); path.setAttribute('stroke-linecap','round');
-  svg.appendChild(path);
-  setTimeout(()=> svg.innerHTML='',220);
-}
-
-/* ---------------------------
-   画面割れスポーン
-   --------------------------- */
-function spawnCrack(){
-  const out = document.getElementById("output");
-  const img = document.createElement("img");
-  img.src = cracks[Math.floor(Math.random()*cracks.length)];
-  img.className = "crack";
-  img.style.width = (120 + Math.random()*360) + "px";
-  img.style.left = Math.random()*80 + "%";
-  img.style.top = Math.random()*70 + "%";
-  img.style.transform = `rotate(${Math.random()*50-25}deg)`;
-  img.style.transition = "opacity 0.9s linear";
-  out.appendChild(img);
-  setTimeout(()=> { try{ img.remove(); } catch(e){} }, 2600);
-}
-
-/* ---------------------------
-   グリッチ文字列置換
-   --------------------------- */
-const glitchChars = ['※','¤','◆','◇','□','▢','▣','▓','▒','■','≡','∆','∇','Ψ','〆','я','ツ','メ','シ'];
-function glitchText(s, intensity){
-  if(!s) return s;
-  if(intensity<=0) return s;
-  let out='';
-  for(const ch of s){
-    if(Math.random() < intensity/10){ out += glitchChars[Math.floor(Math.random()*glitchChars.length)]; }
-    else out += ch;
-  }
-  return out;
-}
-
-/* ---------------------------
-   落下破片
-   --------------------------- */
-function spawnFallingPieces(count=18){
-  for(let i=0;i<count;i++){
-    const p=document.createElement("div");
-    p.className="fall-piece";
-    p.style.left = (Math.random()*100)+"vw";
-    p.style.animationDuration = (1.5 + Math.random()*1.5)+"s";
-    document.body.appendChild(p);
-    setTimeout(()=>{ try{ p.remove(); } catch(e){} }, 3500);
-  }
-}
-
-/* ---------------------------
-   UI 助手
-   --------------------------- */
-function tryPlay(el){
-  if(!el) return;
-  const p = el.play();
-  if(p && p.catch) p.catch(()=>{});
-}
-
-/* ---------------------------
-   毒レベル表示 / 効果
-   --------------------------- */
-function updatePoisonLevel(lv){
-  const lvTxt = document.getElementById("lvTxt");
-  lvTxt.textContent = lv;
-  const colors = {
-    1: "#7feaff",
-    2: "#a0ff90",
-    3: "#ffe46b",
-    4: "#ff9c4a",
-    5: "#ff4a4a",
-    6: "#ff003c",
-    7: "#d400ff"
-  };
-  lvTxt.style.color = colors[lv] || "#fff";
-  lvTxt.style.transition = "0.3s";
-  lvTxt.style.transform = "scale(1.25)";
-  setTimeout(()=> lvTxt.style.transform="scale(1)", 200);
-}
-function poisonBackground(lv){
-  const bg = document.body;
-  const colors = {
-    1:"#0d0d0d", 2:"#1a1a1a", 3:"#251a1a",
-    4:"#331a1a", 5:"#400000", 6:"#4d0000", 7:"#550033"
-  };
-  bg.style.transition = "background 0.6s";
-  bg.style.background = colors[lv] || "#000";
-}
-function poisonShake(lv){
-  const wrapper = document.getElementById("wrap");
-  if(!wrapper) return;
-  if(lv < 5){ wrapper.classList.remove('shake'); return; }
-  wrapper.classList.add('shake');
-  setTimeout(()=> wrapper.classList.remove('shake'), 500);
-}
-function poisonFog(lv){
-  const fog = document.getElementById("fogLayer");
-  if(!fog) return;
-  fog.style.opacity = lv >= 3 ? Math.min(0.9, 0.35 + lv*0.05) : 0;
-}
-function applyPoisonEffects(lv){
-  updatePoisonLevel(lv);
-  poisonBackground(lv);
-  poisonShake(lv);
-  poisonFog(lv);
-}
-
-/* ---------------------------
-   テキスト変換ロジック（安全に動く）
-   --------------------------- */
-function convertTextCore(input, mode, lv){
-  let text = input || "";
-  // 基本置換（辞書）
-  Object.keys(dictionary).forEach(key => {
-    // 正規表現の特殊文字をエスケープ
-    const escKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const reg = new RegExp(escKey, 'g');
-    const repBase = dictionary[key];
-    let rep = repBase;
-    // レベルで装飾
-    if(lv >= 4 && lv <=5) rep = '【' + repBase + '】';
-    if(lv >= 6) rep = '《' + repBase + '：深》';
-    text = text.replace(reg, rep);
-  });
-
-  // mode 系のプレフィックス
-  let actualMode = mode;
-  if(mode === 'mix') {
-    const modes = ['A','B','C','D','E','F'];
-    actualMode = modes[Math.floor(Math.random()*modes.length)];
-  }
-  if(actualMode === 'A') text = 'なんかさ、' + text;
-  if(actualMode === 'B') text = '冷静に言えば、' + text;
-  if(actualMode === 'C') text = '闇の観測結果として、' + text;
-  if(actualMode === 'D') text = '《スターコーポレーション監査》 ' + text;
-  if(actualMode === 'E') text = '［監査長：深層解析］ ' + text;
-  if(actualMode === 'F') text = '〈深界〉 ' + text;
-
-  // prefix / suffix（ランダム）
-  if(lv >= 2) text = prefixes[Math.floor(Math.random()*prefixes.length)] + text;
-  if(lv >= 3) text += suffixes[Math.floor(Math.random()*suffixes.length)];
-
-  // 返答パターン挿入（ランダムで1行）
-  if(Math.random() < 0.65){
-    const rp = responsePatterns[Math.floor(Math.random()*responsePatterns.length)];
-    text = rp + '\n' + text;
-  }
-
-  // glitch intensity
-  let intensity = Math.max(0, lv - 3); // 0..4
-  if(lv >= 6) intensity += 2;
-  // Apply glitch for F or high lv
-  text = glitchText(text, intensity);
-
-  return text;
-}
-
-/* ---------------------------
-   出力レンダリング（1文字ずつ）
-   --------------------------- */
-function revealTextEl(el, text){
-  el.innerHTML = '';
-  const chars = Array.from(text);
-  chars.forEach((c,i)=>{
-    const span = document.createElement('span');
-    span.className = 'reveal-char';
-    span.textContent = c;
-    el.appendChild(span);
-    setTimeout(()=>{ span.style.opacity=1; span.style.transform='translateY(0)'; }, 20*i + Math.random()*80);
-  });
-}
-
-/* ---------------------------
-   主要操作：変換ボタン
-   --------------------------- */
-function convert(){
-  tryPlay(document.getElementById('se_click'));
-  const input = document.getElementById('input').value || '';
-  if(!input.trim()) return;
-  const mode = document.getElementById('mode').value;
-  const lv = Number(document.getElementById('level').value);
-
-  // core conversion
-  const text = convertTextCore(input, mode, lv);
-
-  // output
-  const outEl = document.getElementById('textOut');
-  revealTextEl(outEl, text);
-
-  // visual & audio effects
-  const container = document.getElementById('wrap');
-  container.classList.add('pulse'); setTimeout(()=>container.classList.remove('pulse'),700);
-  tryPlay(document.getElementById('se_pulse'));
-  container.classList.add('shake'); tryPlay(document.getElementById('se_impact')); setTimeout(()=>container.classList.remove('shake'),450);
-  tryPlay(document.getElementById('se_noise'));
-
-  // spawn cracks depending on level
-  const crackCount = 1 + Math.floor(Math.random() * Math.min(4, lv));
-  for(let i=0;i<crackCount;i++){ spawnCrack(); tryPlay(document.getElementById('se_crack')); }
-  if(Math.random() < Math.min(0.9, lv/6)) { flashLightning(); }
-
-  if(lv >= 6 || mode === 'F'){
-    const wrap = document.getElementById('wrap');
-    wrap.style.transform = `perspective(900px) rotateX(${Math.random()*6-3}deg) rotateY(${Math.random()*8-4}deg) rotate(${Math.random()*2-1}deg)`;
-    setTimeout(()=>{ wrap.style.transform=''; }, 900 + Math.random()*800);
-  }
-
-  // fog intensity, falling pieces for high lv
-  const fog = document.getElementById('fogLayer');
-  if(fog) fog.style.opacity = Math.min(0.9, 0.12 * lv + 0.15);
-  if(lv >= 5) spawnFallingPieces(10 + Math.floor(Math.random()*10));
-}
-
-/* ---------------------------
-   Reset
-   --------------------------- */
-function resetAll(){
-  document.getElementById('input').value='';
-  document.getElementById('textOut').innerHTML='';
-  document.getElementById('fogLayer').style.opacity = 0;
-  updatePoisonLevel(Number(document.getElementById('level').value));
-}
-
-/* ---------------------------
-   イベントバインド / 初期化
-   --------------------------- */
-document.getElementById('btnConvert').addEventListener('click', convert);
-document.getElementById('btnReset').addEventListener('click', resetAll);
-document.getElementById('input').addEventListener('keydown', (e)=>{ if(e.ctrlKey && e.key==='Enter'){ convert(); }});
-
-const levelEl = document.getElementById('level');
-levelEl.addEventListener('input',(e)=>{ const v = Number(e.target.value); updatePoisonLevel(v); applyPoisonEffects(v); });
-updatePoisonLevel(Number(levelEl.value));
-
-/* CRT start */
-window.addEventListener('resize', ()=>{ if(crtCanvas){ crtCanvas.width = crtCanvas.offsetWidth; crtCanvas.height = crtCanvas.offsetHeight; crtW = crtCanvas.width; crtH = crtCanvas.height; } });
-setupCRT();
-setInterval(()=>{ drawCRT(); }, 90);
-
-// occasional lightning
-setInterval(()=>{ if(Math.random()<0.08) flashLightning(); }, 1600);
-
-// initialize fog animation (start hidden)
-document.getElementById('fogLayer').style.opacity = 0;
-
+    if(p>=100){clearInterval(timer);}
+  },150);
+});
 </script>
+
+  <!-- 追加の旅行プラン -->
+  <section class="plans-extra">
+    <div class="plan-card">📍 火星サイレントリトリート — 重力1/3でストレスゼロ</div>
+    <div class="plan-card">📍 海底ガラスホテル — 深海の闇を楽しむプラン</div>
+    <div class="plan-card">📍 雲上パラシュート朝食会 — 朝日を頭上で浴びながら食事</div>
+    <div class="plan-card">📍 古代遺跡ナイトツアー — 99%の確率で何も起きない安心仕様</div>
+    <div class="plan-card">📍 無人島ゆったり逃避旅行 — 誰にも知られずに失踪体験</div>
+    <div class="plan-card">📍 水晶洞窟ライトアップ — 幻覚みたいに光るけど合法</div>
+    <div class="plan-card">📍 極寒アイスホテル — 一晩寝れば人生観が変わる温度</div>
+    <div class="plan-card">📍 天空図書館ステイ — 誰も来ない静寂と無限の本</div>
+    <div class="plan-card">📍 南極静止ツアー — ただ立っているだけで偉業になる旅</div>
+    <div class="plan-card">📍 世界最狭ホテル — 身動きできない安心感</div>
+  </section>
 </body>
 </html>
