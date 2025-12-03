@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>ソリティア（Klondike） — アニメ付き</title>
+<style>
+:root{--bg:#0b2946;--card-bg:#ffffff;--card-back:#154e7e;--accent:#ffd54f}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;font-family:Inter, system-ui, -apple-system, "Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;background:linear-gradient(180deg,var(--bg),#062033);color:#fff;overflow:hidden}
+.app{max-width:1100px;margin:18px auto;padding:12px}
+.header{display:flex;gap:10px;align-items:center;justify-content:space-between}
+.title{font-size:20px;font-weight:700}
+.controls{display:flex;gap:8px}
+button{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);color:#fff;padding:8px 10px;border-radius:8px;cursor:pointer}
+button:active{transform:translateY(1px)}
+.board{margin-top:14px}
+.row{display:flex;gap:12px;align-items:flex-start}
+.pile{width:110px;min-height:160px;position:relative}
+.pile.empty{border-radius:8px;border:2px dashed rgba(255,255,255,0.06);background:linear-gradient(180deg,rgba(255,255,255,0.01),transparent)}
+.pile .slot{width:110px;height:150px;position:relative}
+.card{width:100px;height:140px;border-radius:8px;position:absolute;left:5px;top:0;box-shadow:0 10px 30px rgba(0,0,0,0.5);background:transparent;user-select:none;touch-action:none;transform-origin:center center;transition: transform 250ms cubic-bezier(.2,.8,.2,1), top 250ms, left 250ms, opacity 200ms}
+.card .inner{width:100%;height:100%;border-radius:8px;overflow:hidden;position:relative;backface-visibility:hidden;transform-style:preserve-3d;transition: transform 400ms}
+.card.frontShowing .inner{transform:rotateY(0deg)}
+.card .face{position:absolute;inset:0;display:flex;flex-direction:column;align-items:flex-start;padding:8px}
+.card .front{background:linear-gradient(180deg,#fff,#f3f3f3);color:#111}
+.card .back{background:linear-gradient(180deg,var(--card-back),#0e3b63);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700}
+.card.flipping .inner{transform:rotateY(180deg)}
+.card.small{width:80px;height:110px;left:15px}
+.rank{font-size:20px;font-weight:700}
+.suit{font-size:18px}
+.card.red .suit,.card.red .rank{color:#d33}
+.card.black .suit,.card.black .rank{color:#111}
+.stack{position:relative}
+.tableau{width:100%;min-height:220px}
+.tableau .card{position:absolute}
+.info{display:flex;gap:8px;align-items:center}
+.footer{margin-top:14px;color:rgba(255,255,255,0.65);font-size:13px}
+.counter{background:rgba(255,255,255,0.03);padding:6px 8px;border-radius:8px}
+/* dealing animation helper */
+.card.dealMove{transition: transform 500ms cubic-bezier(.2,.9,.2,1), top 500ms, left 500ms}
+/* highlight when dragging */
+.card.dragging{opacity:0.85;transform:scale(1.05);box-shadow:0 20px 40px rgba(0,0,0,0.6)}
+/* win confetti canvas */
+#confetti{position:fixed;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:9999}
+@media (max-width:700px){.pile{width:70px}.card{width:60px;height:86px;left:5px}.card.small{width:48px;height:68px;left:11px}.title{font-size:16px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="title">ソリティア（Klondike） — アニメ付き</div>
+    <div class="controls">
+      <button id="newBtn">新しいゲーム</button>
+      <button id="undoBtn">元に戻す</button>
+      <button id="autoBtn">自動移動（ダブルクリックで）</button>
+      <div class="counter" id="score">スコア: 0</div>
+      <div class="counter" id="moves">移動: 0</div>
+    </div>
+  </div>
+
+  <div class="board">
+    <div class="row" style="justify-content:space-between;margin-bottom:12px">
+      <div style="display:flex;gap:12px">
+        <div class="pile" id="stockPile">
+          <div class="slot" id="stockSlot"></div>
+        </div>
+        <div class="pile" id="wastePile">
+          <div class="slot" id="wasteSlot"></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:12px">
+        <div class="pile empty" id="f1"><div class="slot" data-foundation="S"></div></div>
+        <div class="pile empty" id="f2"><div class="slot" data-foundation="H"></div></div>
+        <div class="pile empty" id="f3"><div class="slot" data-foundation="D"></div></div>
+        <div class="pile empty" id="f4"><div class="slot" data-foundation="C"></div></div>
+      </div>
+    </div>
+
+    <div class="row tableau" id="tableauRow" style="justify-content:space-between">
+      <div class="pile" data-index="0"><div class="slot"></div></div>
+      <div class="pile" data-index="1"><div class="slot"></div></div>
+      <div class="pile" data-index="2"><div class="slot"></div></div>
+      <div class="pile" data-index="3"><div class="slot"></div></div>
+      <div class="pile" data-index="4"><div class="slot"></div></div>
+      <div class="pile" data-index="5"><div class="slot"></div></div>
+      <div class="pile" data-index="6"><div class="slot"></div></div>
+    </div>
+
+  </div>
+  <div class="footer">ヒント: カードをドラッグ&ドロップ、またはダブルクリックで自動的にファウンデーションへ送れます。スマホでも動作します。</div>
+</div>
+<canvas id="confetti"></canvas>
+
+<script>
+// Animated Klondike Solitaire (draw 1)
+const SUITS = ['S','H','D','C'];
+const RANKS = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+let deck = [];
+let tableau = [[],[],[],[],[],[],[]];
+let foundations = {S:[],H:[],D:[],C:[]};
+let stock = [];
+let waste = [];
+let score = 0; let moves = 0;
+let history = [];
+
+function makeDeck(){
+  const arr = [];
+  for(const s of SUITS){
+    for(let r=0;r<RANKS.length;r++) arr.push({suit:s,rank:RANKS[r],value:r+1,face:false,id: s+RANKS[r]+Math.random().toString(36).slice(2,7)})
+  }
+  return arr;
+}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+
+// DOM refs
+const stockSlot = document.getElementById('stockSlot');
+const wasteSlot = document.getElementById('wasteSlot');
+const tableauRow = document.getElementById('tableauRow');
+const scoreEl = document.getElementById('score');
+const movesEl = document.getElementById('moves');
+const confettiCanvas = document.getElementById('confetti');
+
+// create card DOM with front/back for flipping
+function createCardEl(card){
+  const el = document.createElement('div');
+  el.className = 'card';
+  el.dataset.id = card.id;
+  const inner = document.createElement('div'); inner.className='inner';
+  const front = document.createElement('div'); front.className='face front';
+  const back = document.createElement('div'); back.className='face back';
+  // front content
+  const isRed = (card.suit==='H' || card.suit==='D');
+  front.innerHTML = `<div class="rank">${card.rank}</div><div class="suit">${suitSymbol(card.suit)}</div>`;
+  if(isRed) el.classList.add('red'); else el.classList.add('black');
+  back.textContent = 'Solitaire';
+  inner.appendChild(front); inner.appendChild(back); el.appendChild(inner);
+  if(card.face) el.classList.add('frontShowing'); else el.classList.remove('frontShowing');
+  return el;
+}
+function suitSymbol(s){switch(s){case 'S': return '♠';case 'H': return '♥';case 'D': return '♦';case 'C': return '♣';}}
+
+function saveState(){
+  const snapshot = JSON.stringify({tableau,foundations,stock,waste,score,moves});
+  history.push(snapshot); if(history.length>200) history.shift();
+}
+function restoreState(){ if(history.length===0) return; const s = history.pop(); const st = JSON.parse(s); tableau = st.tableau; foundations = st.foundations; stock=st.stock; waste=st.waste; score=st.score; moves=st.moves; render(); }
+
+// rendering with animated positions
+function render(){
+  // stock
+  stockSlot.innerHTML='';
+  if(stock.length>0){ const dummy = document.createElement('div'); dummy.className='card back'; dummy.innerHTML='<div class="inner"><div class="face back">Deck</div></div>'; stockSlot.appendChild(dummy); }
+  // waste
+  wasteSlot.innerHTML='';
+  if(waste.length>0){ const top = waste[waste.length-1]; const el = createCardEl(top); el.style.position='relative'; wasteSlot.appendChild(el); addCardListeners(el); }
+  // foundations
+  ['f1','f2','f3','f4'].forEach((id,i)=>{
+    const el = document.getElementById(id);
+    el.querySelector('.slot').innerHTML='';
+    const suit = SUITS[i];
+    const f = foundations[suit];
+    if(f.length>0){ const c = createCardEl(f[f.length-1]); c.style.position='relative'; el.querySelector('.slot').appendChild(c); }
+  });
+  // tableau
+  const piles = tableauRow.querySelectorAll('.pile');
+  piles.forEach((pileEl,idx)=>{
+    const slot = pileEl.querySelector('.slot'); slot.innerHTML='';
+    const pile = tableau[idx];
+    pile.forEach((card,i)=>{
+      const el = createCardEl(card);
+      el.style.top = (i*26)+'px'; el.style.left='0px'; el.style.zIndex = i+1; el.style.position='absolute';
+      // flip visual
+      if(card.face) { el.classList.add('frontShowing'); } else { el.classList.remove('frontShowing'); }
+      slot.appendChild(el);
+      if(card.face) addCardListeners(el); else el.classList.add('back');
+      // doubleclick
+      el.ondblclick = ()=>autoMoveCardToFoundation(card.id);
+    });
+    pileEl.ondragover = e=>e.preventDefault(); pileEl.ondrop = e=>{e.preventDefault(); const id = e.dataTransfer.getData('text/plain'); handleMoveFromCardToTableau(id, idx)};
+  });
+  scoreEl.textContent = 'スコア: '+score; movesEl.textContent = '移動: '+moves;
+}
+
+// listeners
+function addCardListeners(el){
+  el.draggable = true; el.ondragstart = e=>dragStart(e, el);
+  el.addEventListener('touchstart',touchStart,{passive:false});
+}
+let dragData = null;
+function dragStart(e, el){ const id = el.dataset.id; dragData = {id,srcNode:el}; e.dataTransfer.setData('text/plain', id); setTimeout(()=>el.classList.add('dragging'),20); }
+
+// touch drag support
+let touchState = null;
+function touchStart(e){ e.preventDefault(); const touch = e.touches[0]; const target = e.currentTarget; const id = target.dataset.id; touchState = {id, el:target, startX:touch.clientX, startY:touch.clientY}; target.classList.add('dragging');
+  const move = (ev)=>{ const t = ev.touches[0]; target.style.transform = `translate(${t.clientX - touchState.startX}px, ${t.clientY - touchState.startY}px)`; }
+  const end = (ev)=>{ document.removeEventListener('touchmove',move); document.removeEventListener('touchend',end); target.style.transform=''; target.classList.remove('dragging'); const e2 = ev.changedTouches ? ev.changedTouches[0] : ev; const drop = document.elementFromPoint(e2.clientX, e2.clientY); handleTouchDrop(target, drop); }
+  document.addEventListener('touchmove',move,{passive:false}); document.addEventListener('touchend',end);
+}
+function handleTouchDrop(cardEl, dropEl){ let node = dropEl; while(node && node!==document.body){ if(node.dataset && node.dataset.foundation){ handleDropOnFoundation(cardEl.dataset.id, node.dataset.foundation); return } node = node.parentNode }
+  node = dropEl; while(node && node!==document.body){ if(node.classList && node.classList.contains('pile') && node.dataset.index!==undefined){ handleMoveFromCardToTableau(cardEl.dataset.id, parseInt(node.dataset.index)); return } node = node.parentNode }
+}
+
+function findCardInPiles(cardId){
+  for(let i=0;i<tableau.length;i++){ const pile = tableau[i]; for(let j=0;j<pile.length;j++) if(pile[j].id===cardId) return {pile:'tableau',i,j,card:pile[j]}; }
+  for(const s of Object.keys(foundations)){ const f = foundations[s]; for(let j=0;j<f.length;j++) if(f[j].id===cardId) return {pile:'foundation',s,j,card:f[j]}; }
+  for(let j=0;j< waste.length;j++) if(waste[j].id===cardId) return {pile:'waste',j,card:waste[j]}; return null;
+}
+
+function canPlaceOnTableau(card, targetPile){ if(targetPile.length===0) return card.rank==='K'; const top = targetPile[targetPile.length-1]; if(!top.face) return false; const redA = (card.suit==='H'||card.suit==='D'); const redB = (top.suit==='H'||top.suit==='D'); return redA !== redB && card.value === top.value -1; }
+
+function handleMoveFromCardToTableau(cardId, idx){ saveState(); const found = findCardInPiles(cardId); if(!found) return; let movingCards=[]; let sourcePileIdx=null; if(found.pile==='tableau'){ sourcePileIdx = found.i; const pile = tableau[found.i]; movingCards = pile.slice(found.j); if(!movingCards[0].face) { history.pop(); return; } } else if(found.pile==='waste'){ movingCards = [found.card]; } else return; const targetPile = tableau[idx]; if(canPlaceOnTableau(movingCards[0], targetPile)){ if(found.pile==='tableau') tableau[sourcePileIdx] = tableau[sourcePileIdx].slice(0,found.j); else waste.pop(); // move with animation: render, then animate moving card elements
+    tableau[idx] = tableau[idx].concat(movingCards);
+    if(found.pile==='tableau'){
+      const sp = tableau[sourcePileIdx]; if(sp.length>0 && !sp[sp.length-1].face){ sp[sp.length-1].face=true; score+=5; animateFlip(findCardElementById(sp[sp.length-1].id)); }
+    }
+    moves++; score+=5; render(); animateLastMoveToPile(idx);
+  } else { history.pop(); }
+}
+
+function handleDropOnFoundation(cardId, foundationSuit){ saveState(); const found = findCardInPiles(cardId); if(!found) return; let card = found.card; if(found.pile==='tableau' && found.j !== tableau[found.i].length-1){ history.pop(); return; } if(found.pile==='foundation'){ history.pop(); return; } const target = foundations[foundationSuit]; if(canPlaceOnFoundation(card, target)){
+    if(found.pile==='tableau') tableau[found.i].pop(); else if(found.pile==='waste') waste.pop(); foundations[foundationSuit].push(card);
+    if(found.pile==='tableau'){ if(tableau[found.i].length>0 && !tableau[found.i][tableau[found.i].length-1].face){ tableau[found.i][tableau[found.i].length-1].face=true; score+=5; animateFlip(findCardElementById(tableau[found.i][tableau[found.i].length-1].id)); } }
+    moves++; score+=10; render(); // animate move to foundation
+    animateMoveToFoundation(card.id, foundationSuit); checkWin();
+  } else { history.pop(); }
+}
+
+function canPlaceOnFoundation(card, target){ if(target.length===0) return card.rank==='A'; const top = target[target.length-1]; return card.suit===top.suit && card.value === top.value +1; }
+
+// stock click (draw)
+stockSlot.addEventListener('click',()=>{
+  saveState();
+  if(stock.length===0){ stock = waste.reverse().map(c=>{c.face=false;return c}); waste = []; score-=100; render(); animateResetFromWaste(); return; }
+  const card = stock.pop(); card.face=true; waste.push(card); moves++; render(); // animate draw
+  animateDrawToWaste(card.id);
+});
+
+// double click waste to auto move
+wasteSlot.ondblclick = ()=>{ if(waste.length>0) autoMoveCardToFoundation(waste[waste.length-1].id) }
+
+// helper: find card DOM by id
+function findCardElementById(id){ const el = document.querySelector(`.card[data-id='${id}']`); return el; }
+
+// animations
+function animateFlip(el){ if(!el) return; el.classList.add('flipping'); setTimeout(()=>{ el.classList.toggle('frontShowing'); el.classList.remove('flipping'); },420); }
+
+function animateDrawToWaste(cardId){ const el = findCardElementById(cardId); if(!el) return; // pulse
+  el.style.transform='scale(1.1)'; setTimeout(()=>el.style.transform='',260);
+}
+
+function animateResetFromWaste(){ // little shuffle effect on stockSlot
+  const s = stockSlot.querySelector('.card'); if(!s) return; s.style.transform='scale(0.95)'; setTimeout(()=>s.style.transform='',300);
+}
+
+function animateLastMoveToPile(idx){ // highlight top card
+  const pileEl = tableauRow.querySelector(`.pile[data-index='${idx}'] .slot .card:last-child`);
+  if(!pileEl) return; pileEl.style.transform='scale(1.06)'; setTimeout(()=>pileEl.style.transform='',350);
+}
+
+function animateMoveToFoundation(cardId, suit){ const el = findCardElementById(cardId); if(!el) return; // flying animation: clone and fly to foundation slot
+  const rect = el.getBoundingClientRect(); const clone = el.cloneNode(true); clone.style.position='fixed'; clone.style.left=rect.left+'px'; clone.style.top=rect.top+'px'; clone.style.margin=0; clone.style.transition='transform 600ms cubic-bezier(.2,.8,.2,1), left 600ms, top 600ms, opacity 600ms'; document.body.appendChild(clone);
+  const targetSlot = document.querySelector(`[data-foundation='${suit}']`).getBoundingClientRect(); requestAnimationFrame(()=>{
+    clone.style.left = (targetSlot.left + 6) + 'px'; clone.style.top = (targetSlot.top + 6) + 'px'; clone.style.transform = 'scale(0.7) rotate(6deg)'; clone.style.opacity = '0.95';
+  }); setTimeout(()=>{ clone.remove(); },700);
+}
+
+function autoMoveCardToFoundation(cardId){ saveState(); const found = findCardInPiles(cardId); if(!found) { history.pop(); return } const card = found.card; const suit = card.suit; if(canPlaceOnFoundation(card, foundations[suit])){ if(found.pile==='tableau') tableau[found.i].pop(); else if(found.pile==='waste') waste.pop(); foundations[suit].push(card); moves++; score+=10; if(found.pile==='tableau' && tableau[found.i].length>0 && !tableau[found.i][tableau[found.i].length-1].face){ tableau[found.i][tableau[found.i].length-1].face=true; score+=5; animateFlip(findCardElementById(tableau[found.i][tableau[found.i].length-1].id)); } render(); animateMoveToFoundation(card.id, suit); checkWin(); } else { history.pop(); }
+}
+
+function checkWin(){ const total = Object.values(foundations).reduce((acc,f)=>acc+f.length,0); if(total===52){ setTimeout(()=>{ launchConfetti(); alert('おめでとう！勝ちました！') },300); } }
+
+// dealing animation on start
+function startGame(){ deck = shuffle(makeDeck()); tableau = [[],[],[],[],[],[],[]]; foundations = {S:[],H:[],D:[],C:[]}; waste=[];stock=[];score=0;moves=0;history=[]; // deal with animation
+  // empty board first
+  render();
+  // sequential deal to tableau
+  let dealIndex = 0;
+  // build piles in memory then animate
+  for(let i=0;i<7;i++){
+    for(let j=0;j<=i;j++){
+      let card = deck.pop(); card.face = false; tableau[i].push(card);
+    }
+    // reveal last
+    tableau[i][tableau[i].length-1].face = true;
+  }
+  stock = deck.map(c=>{c.face=false;return c}); deck = [];
+  // render then animate small entrance
+  render();
+  // animate each tableau pile cards slightly staggered
+  document.querySelectorAll('.tableau .card').forEach((c,idx)=>{ c.style.opacity=0; setTimeout(()=>{ c.style.transition='transform 300ms, opacity 300ms'; c.style.opacity=1; c.style.transform='translateY(-6px)'; setTimeout(()=>c.style.transform='',300) }, idx*20); });
+}
+
+// utility: find card element by dataset id after render
+
+// basic UI buttons
+document.getElementById('newBtn').addEventListener('click',()=>startGame());
+document.getElementById('undoBtn').addEventListener('click',()=>restoreState());
+
+// foundation drop listeners
+document.querySelectorAll('[data-foundation]').forEach(el=>{ el.addEventListener('dragover',e=>e.preventDefault()); el.addEventListener('drop',e=>{ e.preventDefault(); const id = e.dataTransfer.getData('text/plain'); handleDropOnFoundation(id, el.dataset.foundation); }); });
+
+// click-to-auto helper for mobile
+let clickTimer = null;
+document.addEventListener('click', (e)=>{
+  const c = e.target.closest('.card'); if(!c) return; if(clickTimer && clickTimer.datasetId === c.dataset.id){ clearTimeout(clickTimer.timer); clickTimer = null; autoMoveCardToFoundation(c.dataset.id); } else { if(clickTimer) clearTimeout(clickTimer.timer); clickTimer = {datasetId:c.dataset.id, timer:setTimeout(()=>{clickTimer=null},350)}; }
+});
+
+// confetti (simple)
+function launchConfetti(){ const w = confettiCanvas.width = window.innerWidth; const h = confettiCanvas.height = window.innerHeight; const ctx = confettiCanvas.getContext('2d'); const pieces = []; for(let i=0;i<120;i++){ pieces.push({x:Math.random()*w, y:Math.random()*-h, r:Math.random()*6+4, dx:Math.random()*6-3, dy:Math.random()*4+2, color:`hsl(${Math.random()*360},80%,60%)`}); }
+  let t=0; function frame(){ ctx.clearRect(0,0,w,h); for(const p of pieces){ p.x += p.dx; p.y += p.dy; p.dy += 0.05; ctx.fillStyle = p.color; ctx.beginPath(); ctx.ellipse(p.x,p.y,p.r,p.r*0.6,0,0,Math.PI*2); ctx.fill(); }
+    t++; if(t<200) requestAnimationFrame(frame); else ctx.clearRect(0,0,w,h);
+  } frame(); }
+
+// helpers for animations used when flipping after moves
+function findCardEle
